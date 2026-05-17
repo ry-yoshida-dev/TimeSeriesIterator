@@ -5,7 +5,7 @@ import numpy as np
 from types import TracebackType
 
 from id_manager import IDManager
-from video_reader import VideoReader
+from opencv_video import VideoReader
 from ..iterator import TimeSeriesIterator
 from ..parameters import TimeSeriesIterationParameters
 from ..utils import MediaType
