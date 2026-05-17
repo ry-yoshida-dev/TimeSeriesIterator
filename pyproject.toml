@@ -20,7 +20,8 @@ dependencies = [
     "id-manager @ git+https://github.com/ry-yoshida-private/IDManager.git",
     "opencv-video @ git+https://github.com/ry-yoshida-private/OpenCVVideo.git",
     "numpy",
-    "opencv-contrib-python"
+    "opencv-contrib-python",
+    "tqdm",
 ]
 
 [project.urls]

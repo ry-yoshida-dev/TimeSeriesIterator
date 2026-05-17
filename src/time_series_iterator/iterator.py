@@ -1,8 +1,11 @@
 from __future__ import annotations
 import os
+from typing import Any
+
 import numpy as np
 from abc import ABC, abstractmethod
 from id_manager import IDManager
+from tqdm import tqdm
 
 from .parameters import TimeSeriesIterationParameters
 from .utils import MediaType
@@ -97,6 +100,26 @@ class TimeSeriesIterator(ABC):
             raise StopIteration
 
         return self.time_id, data
+
+    def with_tqdm(self, *, total: int | None = None, **tqdm_kwargs: Any) -> tqdm[tuple[int, np.ndarray]]:
+        """
+        Wrap this iterator with tqdm for use in a for loop.
+
+        Parameters
+        ----------
+        total:
+            Bar length. Defaults to len(self).
+        **tqdm_kwargs:
+            Forwarded to tqdm (e.g. desc, unit, leave).
+
+        Example
+        -------
+        >>> for time_id, data in iterator.with_tqdm(desc="frames"):
+        ...     ...
+        """
+        if total is None:
+            total = len(self)
+        return tqdm(self, total=total, **tqdm_kwargs)
 
     @abstractmethod
     def _next_data(self) -> np.ndarray | None:
