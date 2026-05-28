@@ -17,16 +17,16 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "id-manager @ git+https://github.com/ry-yoshida-private/IDManager.git",
-    "opencv-video @ git+https://github.com/ry-yoshida-private/OpenCVVideo.git",
+    "id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git",
+    "opencv-video @ git+https://github.com/ry-yoshida-dev/OpenCVVideo.git",
     "numpy",
     "opencv-contrib-python",
     "tqdm",
 ]
 
 [project.urls]
-Homepage = "https://github.com/ry-yoshida-private/TimeSeriesIterator"
-"Bug Tracker" = "https://github.com/ry-yoshida-private/TimeSeriesIterator/issues"
+Homepage = "https://github.com/ry-yoshida-dev/TimeSeriesIterator"
+"Bug Tracker" = "https://github.com/ry-yoshida-dev/TimeSeriesIterator/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

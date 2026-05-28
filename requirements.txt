@@ -1,4 +1,4 @@
 numpy
 opencv-contrib-python
-id-manager @ git+https://github.com/ry-yoshida-private/IDManager.git
-opencv-video @ git+https://github.com/ry-yoshida-private/OpenCVVideo.git
+id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git
+opencv-video @ git+https://github.com/ry-yoshida-dev/OpenCVVideo.git
