@@ -1,10 +1,10 @@
 import cv2
-import numpy as np
 from types import TracebackType
 
 from id_manager import IDManager
 from ..iterator import TimeSeriesIterator
 from ..parameters import TimeSeriesIterationParameters
+from ..types import NumericArray
 from ..utils import MediaType
 
 class ImageIterator(TimeSeriesIterator):
@@ -33,13 +33,13 @@ class ImageIterator(TimeSeriesIterator):
             step=self.params.sampling_freq,
             )
 
-    def _next_data(self) -> np.ndarray | None:
+    def _next_data(self) -> NumericArray | None:
         """
         Get the next data from the image iterator.
 
         Returns:
         ----------
-        np.ndarray | None: The next data from the image iterator.
+        NumericArray | None: The next data from the image iterator.
         """
         index = self.file_id_manager.next_id
         if index >= len(self.paths):
@@ -70,7 +70,7 @@ class ImageIterator(TimeSeriesIterator):
     def media_type(self) -> MediaType:
         return MediaType.IMAGE
 
-    def get_image(self, frame_id: int) -> np.ndarray:
+    def get_image(self, frame_id: int) -> NumericArray:
         """
         Get the image from the image iterator.
 
@@ -81,7 +81,7 @@ class ImageIterator(TimeSeriesIterator):
 
         Returns:
         ----------
-        np.ndarray: The image from the image iterator.
+        NumericArray: The image from the image iterator.
 
         Raises:
         ----------

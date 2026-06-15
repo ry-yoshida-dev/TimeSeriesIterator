@@ -2,12 +2,12 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import numpy as np
 from abc import ABC, abstractmethod
 from id_manager import IDManager
 from tqdm import tqdm
 
 from .parameters import TimeSeriesIterationParameters
+from .types import NumericArray
 from .utils import MediaType
 
 class TimeSeriesIterator(ABC):
@@ -74,16 +74,16 @@ class TimeSeriesIterator(ABC):
     def __iter__(self):
         return self
 
-    def __next__(self) -> tuple[int, np.ndarray]:
+    def __next__(self) -> tuple[int, NumericArray]:
         """
         Get the next data from the time series iterator.
 
         Returns:
         -------
-        tuple[int, np.ndarray]
+        tuple[int, NumericArray]
             The next data from the time series iterator.
             int: The frame id of the next data.
-            np.ndarray: The next data.
+            NumericArray: The next data.
         
         Raises:
         -------
@@ -101,7 +101,7 @@ class TimeSeriesIterator(ABC):
 
         return self.time_id, data
 
-    def with_tqdm(self, *, total: int | None = None, **tqdm_kwargs: Any) -> tqdm[tuple[int, np.ndarray]]:
+    def with_tqdm(self, *, total: int | None = None, **tqdm_kwargs: Any) -> tqdm[tuple[int, NumericArray]]:
         """
         Wrap this iterator with tqdm for use in a for loop.
 
@@ -122,7 +122,7 @@ class TimeSeriesIterator(ABC):
         return tqdm(self, total=total, **tqdm_kwargs)
 
     @abstractmethod
-    def _next_data(self) -> np.ndarray | None:
+    def _next_data(self) -> NumericArray | None:
         pass
 
     @abstractmethod

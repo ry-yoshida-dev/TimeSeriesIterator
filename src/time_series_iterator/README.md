@@ -10,6 +10,7 @@ Package for iterating time-series media data in ascending order with configurabl
 |-----------|-------------|
 | [iterator.py](./iterator.py) | Base iterator class and factory method (`TimeSeriesIterator.build`) |
 | [parameters.py](./parameters.py) | Dataclass for iteration parameters (sampling rate, start/end IDs, index base) |
+| [types.py](./types.py) | Type aliases for numeric arrays yielded by iterators (`NumericArray`) |
 | [utils/](./utils/README.md) | Utility enums such as media type and index base |
 | [iterators/](./iterators/README.md) | Concrete iterator implementations for image/video inputs |
 

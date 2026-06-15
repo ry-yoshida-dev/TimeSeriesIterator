@@ -8,6 +8,7 @@ from id_manager import IDManager
 from opencv_video import VideoReader
 from ..iterator import TimeSeriesIterator
 from ..parameters import TimeSeriesIterationParameters
+from ..types import NumericArray
 from ..utils import MediaType
 
 class VideoIterator(TimeSeriesIterator):
@@ -74,13 +75,13 @@ class VideoIterator(TimeSeriesIterator):
             video_reader.release()
         return end_frame_ids
 
-    def _next_data(self) -> np.ndarray | None:
+    def _next_data(self) -> NumericArray | None:
         """
         Get the next data from the video iterator.
 
         Returns:
         ----------
-        np.ndarray | None: The next data from the video iterator.
+        NumericArray | None: The next data from the video iterator.
 
         Raises:
         ----------
@@ -151,7 +152,7 @@ class VideoIterator(TimeSeriesIterator):
     def end_time_id(self) -> int:
         return self.end_frame_id + self.params.index_base.value - 1
 
-    def get_image(self, time_id: int) -> np.ndarray:
+    def get_image(self, time_id: int) -> NumericArray:
         """
         Get the frame from the video.
 
@@ -162,7 +163,7 @@ class VideoIterator(TimeSeriesIterator):
 
         Returns:
         ----------
-        np.ndarray: The frame from the video.
+        NumericArray: The frame from the video.
 
         Raises:
         ----------
