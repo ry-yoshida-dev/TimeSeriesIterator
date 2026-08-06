@@ -20,7 +20,7 @@ class TimeSeriesIterationParameters:
     index_base: IndexBase
         The base index of the time series data.
     start_time_id: int
-        The start time id of the time series data. 
+        The start time id of the time series data.
     end_time_id: int
         The end time id of the time series data.
         * -1 indicates iteration until the last time.
@@ -28,11 +28,10 @@ class TimeSeriesIterationParameters:
     pre_sampled_freq: int = 1
     sampling_freq: int = 1
     raw_sampling_rate: float | int = 30
-    index_base: IndexBase = IndexBase.ONE 
-    start_time_id: int = 1 
-    end_time_id: int = -1 
-    start_video_file_index: int = 0
-    
+    index_base: IndexBase = IndexBase.ONE
+    start_time_id: int = 1
+    end_time_id: int = -1
+
     def __post_init__(self):
         self._validate_parameters()
 

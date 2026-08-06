@@ -12,7 +12,7 @@ The iterators are designed to handle sequential data processing with configurabl
 | Component | Description |
 |-----------|-------------|
 | [image.py](image.py) | Program for iterating through multiple image files |
-| [video.py](video.py) | Program for iterating through multiple video files |
+| [video/](video/README.md) | Program for iterating through multiple video files, over a choice of decode backends |
 
 ## Example Usage
 
@@ -43,10 +43,10 @@ for frame_id, image in tqdm(image_iterator):
 import glob
 import cv2
 from tqdm import tqdm
-from time_series_iterator import VideoIterator, TimeSeriesIterationParameters, IndexBase
+from time_series_iterator import VideoIterator, VideoIterationParameters, IndexBase
 
 paths = sorted(glob.glob("data/videos/*.mp4"))
-params = TimeSeriesIterationParameters(
+params = VideoIterationParameters(
     pre_sampled_freq=1,
     sampling_freq=1,
     raw_sampling_rate=30,

@@ -19,10 +19,13 @@ classifiers = [
 dependencies = [
     "id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git",
     "opencv-video @ git+https://github.com/ry-yoshida-dev/OpenCVVideo.git",
+    "torchcodec @ git+https://github.com/ry-yoshida-dev/torchcodec.git",
     "numpy",
     "opencv-contrib-python",
+    "torch",
     "tqdm",
 ]
+
 
 [project.urls]
 Homepage = "https://github.com/ry-yoshida-dev/TimeSeriesIterator"
@@ -30,3 +33,6 @@ Homepage = "https://github.com/ry-yoshida-dev/TimeSeriesIterator"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.uv.sources]
+torchcodec = { path = "wheels/torchcodec-0.16.0a0+7861421-cp314-cp314-linux_x86_64.whl" }

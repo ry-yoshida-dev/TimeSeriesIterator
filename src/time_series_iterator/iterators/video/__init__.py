@@ -5,11 +5,19 @@ import numpy as np
 from types import TracebackType
 
 from id_manager import IDManager
-from opencv_video import VideoReader
-from ..iterator import TimeSeriesIterator
-from ..parameters import TimeSeriesIterationParameters
-from ..types import NumericArray
-from ..utils import MediaType
+from .backend import VideoBackend
+from .factory import build_video_reader
+from .parameters import VideoIterationParameters
+from .reader import VideoFrameReader
+from ...iterator import TimeSeriesIterator
+from ...types import NumericArray
+from ...utils import MediaType
+
+__all__ = [
+    "VideoBackend",
+    "VideoIterationParameters",
+    "VideoIterator",
+]
 
 class VideoIterator(TimeSeriesIterator):
     """
@@ -27,9 +35,9 @@ class VideoIterator(TimeSeriesIterator):
         The cumulative end frame ids of the video files.
     """
     def __init__(
-        self, 
-        paths: list[str], 
-        params: TimeSeriesIterationParameters
+        self,
+        paths: list[str],
+        params: VideoIterationParameters
         ) -> None:
         """
         Initialize the VideoIterator.
@@ -38,20 +46,21 @@ class VideoIterator(TimeSeriesIterator):
         ----------
         paths: list[str]
             The paths to the video files.
-        params: TimeSeriesIterationParameters
+        params: VideoIterationParameters
             The parameters for the iteration of the time series data.
         """
         super().__init__(
-            params=params, 
+            params=params,
             paths=paths
             )
+        self.params: VideoIterationParameters = params
         # manager for the file index of the video files.
         self.file_id_manager = IDManager(
             current_id=self.params.start_video_file_index,
             step=1,
             )
         # manager for the frame index of the video files.
-        self.video_reader: VideoReader | None = None
+        self.video_reader: VideoFrameReader | None = None
         self.start_frame_index = self.params.offset_start_id
         self._end_frame_ids: list[int] = self._get_end_frame_ids()
         self._cumulative_end_frame_ids: list[int] = [int(value) for value in np.cumsum(self._end_frame_ids)]
@@ -66,9 +75,11 @@ class VideoIterator(TimeSeriesIterator):
         """
         end_frame_ids: list[int] = []
         for path in self.paths:
-            video_reader = VideoReader(
-                video_path=path, 
-                iter_start_frame=0
+            video_reader = build_video_reader(
+                backend=self.params.video_backend,
+                video_path=path,
+                iter_start_frame=0,
+                freq=1,
                 )
             total_frame = int(video_reader.total_frame)
             end_frame_ids.append(total_frame)
@@ -96,10 +107,11 @@ class VideoIterator(TimeSeriesIterator):
                 if self.video_reader is not None:
                     self.video_reader.release()
 
-                self.video_reader = VideoReader(
-                    video_path=self.paths[file_index], 
-                    iter_start_frame=self.start_frame_index, 
-                    freq=self.params.sampling_freq
+                self.video_reader = build_video_reader(
+                    backend=self.params.video_backend,
+                    video_path=self.paths[file_index],
+                    iter_start_frame=self.start_frame_index,
+                    freq=self.params.sampling_freq,
                     )
 
                 # update the start index of the video reader to ensure that the reading the frame of next video file is correct.
@@ -125,7 +137,7 @@ class VideoIterator(TimeSeriesIterator):
 
     def __del__(self) -> None:
         self.close()
-        
+
     def __enter__(self) -> VideoIterator:
         return self
 
@@ -171,7 +183,7 @@ class VideoIterator(TimeSeriesIterator):
         """
         if time_id > self.end_frame_id:
             raise ValueError(f"FrameID: {time_id} is out of range")
-        
+
         video_file_index = 0
         end_frame_id = 0 # sum of the frame ids of the previous video files.
         for tmp_video_file_index, tmp_end_frame_id in enumerate(self._cumulative_end_frame_ids):
@@ -179,10 +191,12 @@ class VideoIterator(TimeSeriesIterator):
                 video_file_index = tmp_video_file_index + 1
                 end_frame_id = self._cumulative_end_frame_ids[tmp_video_file_index]
                 break
-            
-        video_reader = VideoReader(
+
+        video_reader = build_video_reader(
+            backend=self.params.video_backend,
             video_path=self.paths[video_file_index],
-            iter_start_frame=0
+            iter_start_frame=0,
+            freq=1,
             )
         frame = video_reader.extract_frame(frame_number=(time_id - end_frame_id))
         video_reader.release()

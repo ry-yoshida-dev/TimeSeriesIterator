@@ -171,16 +171,24 @@ class TimeSeriesIterator(ABC):
         Raises:
         ----------
         ValueError: If the media type is not supported.
+        TypeError: If media_type is MediaType.VIDEO and parameters is not a VideoIterationParameters.
         """
-        if parameters is None:
-            parameters = TimeSeriesIterationParameters()
-
         match media_type:
             case MediaType.IMAGE:
                 from .iterators.image import ImageIterator
+                if parameters is None:
+                    parameters = TimeSeriesIterationParameters()
                 return ImageIterator(paths=paths, params=parameters)
             case MediaType.VIDEO:
                 from .iterators.video import VideoIterator
+                from .iterators.video.parameters import VideoIterationParameters
+                if parameters is None:
+                    parameters = VideoIterationParameters()
+                elif not isinstance(parameters, VideoIterationParameters):
+                    raise TypeError(
+                        "MediaType.VIDEO requires VideoIterationParameters, "
+                        f"got {type(parameters).__name__}"
+                        )
                 return VideoIterator(paths=paths, params=parameters)
             case _:
                 raise ValueError(f"Unsupported media type: {media_type}")

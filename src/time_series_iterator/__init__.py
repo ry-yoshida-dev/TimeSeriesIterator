@@ -10,14 +10,18 @@ from .parameters import TimeSeriesIterationParameters
 from .utils import IndexBase, MediaType
 from .iterators import (
     ImageIterator,
+    VideoBackend,
+    VideoIterationParameters,
     VideoIterator,
     )
 
 __all__ = [
     "TimeSeriesIterator",
-    "TimeSeriesIterationParameters", 
+    "TimeSeriesIterationParameters",
     "IndexBase",
     "ImageIterator",
+    "VideoBackend",
+    "VideoIterationParameters",
     "VideoIterator",
     "MediaType",
 ]
