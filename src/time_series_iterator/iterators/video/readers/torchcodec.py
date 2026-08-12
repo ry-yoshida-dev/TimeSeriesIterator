@@ -1,6 +1,10 @@
 import torch
 from torchcodec.decoders import VideoDecoder
 
+DEFAULT_DECODE_RUN_LENGTH: int = 16
+"""Frames one decode call reads ahead for, when iterating."""
+
+
 class TorchCodecVideoReader:
     """
     Frame reader backed by `torchcodec`, decoding on a CUDA device.
@@ -13,16 +17,26 @@ class TorchCodecVideoReader:
     the point of this backend: choose `VideoBackend.OPENCV` instead for
     CPU-only decoding, which yields `BGRFrame` (NumPy) rather than a tensor.
 
+    Iteration decodes a run of consecutive frames per call and serves them one
+    at a time. Asking for one frame at a time is a seek and a decode call each,
+    which for a reader walking a video start to finish pays a per-frame fixed
+    cost for a stream the decoder would otherwise read straight through; a run
+    amortizes it. A run is a decoded buffer held on the decode device, so
+    `decode_run_length` trades that cost against device memory.
+
     Attributes:
     ----------
     total_frame: int
         Total number of frames in the video.
+    decode_run_length: int
+        Frames one decode call reads ahead for while iterating.
     """
     def __init__(
         self,
         video_path: str,
         iter_start_frame: int = 0,
         freq: int = 1,
+        decode_run_length: int = DEFAULT_DECODE_RUN_LENGTH,
     ) -> None:
         """
         Initialize the TorchCodecVideoReader.
@@ -35,10 +49,24 @@ class TorchCodecVideoReader:
             Frame index to start reading from.
         freq: int
             Step size between yielded frames.
+        decode_run_length: int
+            Frames one decode call reads ahead for while iterating. One decodes
+            frame by frame, as an arbitrary-index read does.
+
+        Raises:
+        ----------
+        ValueError: If `decode_run_length` is not positive.
         """
+        if decode_run_length < 1:
+            raise ValueError(
+                f"decode_run_length must be at least 1, got {decode_run_length}"
+            )
         self._decoder: VideoDecoder = VideoDecoder(video_path, device="cuda")
         self._freq: int = freq
         self._next_frame_id: int = iter_start_frame
+        self.decode_run_length: int = decode_run_length
+        self._run: torch.Tensor | None = None
+        self._run_start_frame_id: int = 0
         num_frames = self._decoder.metadata.num_frames
         if num_frames is None:
             raise RuntimeError(
@@ -72,9 +100,60 @@ class TorchCodecVideoReader:
         """
         if self.is_reach_end_of_video:
             raise StopIteration
-        frame = self.extract_frame(frame_number=self._next_frame_id)
+        frame = self._from_run(frame_number=self._next_frame_id)
         self._next_frame_id += self._freq
         return frame
+
+    def _from_run(self, frame_number: int) -> torch.Tensor:
+        """
+        Return one frame out of the current decoded run, decoding a new one first if needed.
+
+        Parameters:
+        ----------
+        frame_number: int
+            Frame index to read, which iteration reaches in order.
+
+        Returns:
+        ----------
+        torch.Tensor: The frame at `frame_number`, shape (3, H, W), uint8, RGB,
+            on the CUDA device, as a view into the run's buffer.
+        """
+        run = self._run
+        offset = (frame_number - self._run_start_frame_id) // self._freq
+        is_held = (
+            run is not None
+            and 0 <= offset < len(run)
+            and (frame_number - self._run_start_frame_id) % self._freq == 0
+        )
+        if run is None or not is_held:
+            run = self._decode_run(start_frame_id=frame_number)
+            offset = 0
+        return run[offset]
+
+    def _decode_run(self, start_frame_id: int) -> torch.Tensor:
+        """
+        Decode the run of frames beginning at `start_frame_id`, and hold it.
+
+        Parameters:
+        ----------
+        start_frame_id: int
+            First frame index of the run.
+
+        Returns:
+        ----------
+        torch.Tensor: The run, shape (n, 3, H, W), uint8, RGB, on the CUDA
+            device, where n is at most `decode_run_length` frames of `freq`
+            apart and never reaches past the end of the video.
+        """
+        stop = min(
+            start_frame_id + self._freq * self.decode_run_length, self.total_frame
+        )
+        run = self._decoder.get_frames_in_range(
+            start=start_frame_id, stop=stop, step=self._freq
+        ).data
+        self._run = run
+        self._run_start_frame_id = start_frame_id
+        return run
 
     def extract_frame(self, frame_number: int) -> torch.Tensor:
         """
@@ -94,9 +173,10 @@ class TorchCodecVideoReader:
 
     def release(self) -> None:
         """
-        Release the decoder.
+        Release the decoder and the run it decoded ahead.
 
         `torchcodec` exposes no explicit close; dropping the reference lets the
         garbage collector free the decode context.
         """
+        self._run = None
         del self._decoder

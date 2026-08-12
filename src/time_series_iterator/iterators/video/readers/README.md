@@ -14,4 +14,4 @@ has no module here: `opencv_video.VideoReader` already satisfies
 
 | Component | Description |
 |-----------|-------------|
-| [torchcodec.py](./torchcodec.py) | `VideoBackend.TORCHCODEC` backend: decode via `torchcodec` on a CUDA device, using the GPU's NVDEC hardware instead of the CPU |
+| [torchcodec.py](./torchcodec.py) | `VideoBackend.TORCHCODEC` backend: decode via `torchcodec` on a CUDA device, using the GPU's NVDEC hardware instead of the CPU, a run of consecutive frames per decode call while iterating |
