@@ -80,6 +80,7 @@ class VideoIterator(TimeSeriesIterator):
                 video_path=path,
                 iter_start_frame=0,
                 freq=1,
+                device=self.params.decode_device,
                 )
             total_frame = int(video_reader.total_frame)
             end_frame_ids.append(total_frame)
@@ -112,6 +113,7 @@ class VideoIterator(TimeSeriesIterator):
                     video_path=self.paths[file_index],
                     iter_start_frame=self.start_frame_index,
                     freq=self.params.sampling_freq,
+                    device=self.params.decode_device,
                     )
 
                 # update the start index of the video reader to ensure that the reading the frame of next video file is correct.
@@ -197,6 +199,7 @@ class VideoIterator(TimeSeriesIterator):
             video_path=self.paths[video_file_index],
             iter_start_frame=0,
             freq=1,
+            device=self.params.decode_device,
             )
         frame = video_reader.extract_frame(frame_number=(time_id - end_frame_id))
         video_reader.release()

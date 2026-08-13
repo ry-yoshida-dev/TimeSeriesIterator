@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git",
     "opencv-video @ git+https://github.com/ry-yoshida-dev/OpenCVVideo.git",
+    "torch_modules @ git+https://github.com/ry-yoshida-dev/TorchModules.git",
     "torchcodec @ git+https://github.com/ry-yoshida-dev/torchcodec.git",
     "numpy",
     "opencv-contrib-python",

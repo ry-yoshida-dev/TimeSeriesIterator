@@ -1,4 +1,7 @@
+import warnings
+
 import torch
+from torch_modules import Device
 from torchcodec.decoders import VideoDecoder
 
 DEFAULT_DECODE_RUN_LENGTH: int = 16
@@ -7,15 +10,21 @@ DEFAULT_DECODE_RUN_LENGTH: int = 16
 
 class TorchCodecVideoReader:
     """
-    Frame reader backed by `torchcodec`, decoding on a CUDA device.
+    Frame reader backed by `torchcodec`, decoding on a chosen torch device.
 
     `torchcodec` hands frames back as an RGB `(3, H, W)` uint8 tensor on the
     decode device, and this reader returns that tensor as-is -- no channel
     flip, no device transfer, no NumPy conversion -- so a frame this reader
-    yields never leaves the GPU on its way to `image_container.TensorImageContainer`.
-    Decoding happens on the GPU's NVDEC hardware rather than the CPU, which is
-    the point of this backend: choose `VideoBackend.OPENCV` instead for
-    CPU-only decoding, which yields `BGRFrame` (NumPy) rather than a tensor.
+    yields never leaves that device on its way to
+    `image_container.TensorImageContainer`.
+
+    On a CUDA device, decoding runs on the GPU's NVDEC hardware rather than on
+    the CPU, which is the point of this backend. `torchcodec` also decodes in
+    software on `Device.CPU` though, and still yields tensors there, so this
+    reader runs on any machine: a device it cannot decode on resolves down to
+    `Device.CPU` rather than failing, and `device` reports the one in use.
+    `VideoBackend.OPENCV` is the other CPU-only option, but it yields
+    `BGRFrame` (NumPy) rather than a tensor.
 
     Iteration decodes a run of consecutive frames per call and serves them one
     at a time. Asking for one frame at a time is a seek and a decode call each,
@@ -28,12 +37,16 @@ class TorchCodecVideoReader:
     ----------
     total_frame: int
         Total number of frames in the video.
+    device: Device
+        Device the decode actually runs on and the frames come back on, which
+        is the requested one resolved against what this machine offers.
     decode_run_length: int
         Frames one decode call reads ahead for while iterating.
     """
     def __init__(
         self,
         video_path: str,
+        device: Device,
         iter_start_frame: int = 0,
         freq: int = 1,
         decode_run_length: int = DEFAULT_DECODE_RUN_LENGTH,
@@ -45,6 +58,9 @@ class TorchCodecVideoReader:
         ----------
         video_path: str
             Path to the video file.
+        device: Device
+            Device to decode on, resolved down to `Device.CPU` when this machine
+            cannot decode there.
         iter_start_frame: int
             Frame index to start reading from.
         freq: int
@@ -56,12 +72,14 @@ class TorchCodecVideoReader:
         Raises:
         ----------
         ValueError: If `decode_run_length` is not positive.
+        RuntimeError: If the frame count cannot be determined.
         """
         if decode_run_length < 1:
             raise ValueError(
                 f"decode_run_length must be at least 1, got {decode_run_length}"
             )
-        self._decoder: VideoDecoder = VideoDecoder(video_path, device="cuda")
+        self.device: Device = self._resolve_device(device=device)
+        self._decoder: VideoDecoder = VideoDecoder(video_path, device=self.device.torch_device)
         self._freq: int = freq
         self._next_frame_id: int = iter_start_frame
         self.decode_run_length: int = decode_run_length
@@ -73,6 +91,41 @@ class TorchCodecVideoReader:
                 f"torchcodec could not determine the frame count for '{video_path}'."
             )
         self.total_frame: int = num_frames
+
+    @staticmethod
+    def _resolve_device(device: Device) -> Device:
+        """
+        Return the device `torchcodec` can actually decode on here.
+
+        Resolved before the decoder is constructed rather than left to
+        `torchcodec`, which reaches `torch` through the stable ABI and reports a
+        failed allocation on an absent CUDA device as an opaque
+        `torch_call_dispatcher` error naming neither the device nor the reason.
+
+        Parameters:
+        ----------
+        device: Device
+            Device the decode was asked to run on.
+
+        Returns:
+        ----------
+        Device: `device` itself when `torchcodec` decodes there on this machine,
+            and `Device.CPU` otherwise -- for a CUDA request torch reports no
+            device for, and for `Device.MPS`, which `torchcodec` has no decode
+            path for at all.
+        """
+        match device:
+            case Device.CPU:
+                return device
+            case Device.CUDA if torch.cuda.is_available():
+                return device
+            case _:
+                warnings.warn(
+                    f"torchcodec cannot decode on {device} here, falling back to {Device.CPU}. "
+                    + "Decoding runs in software instead of on NVDEC, which is slower.",
+                    stacklevel=3,
+                )
+                return Device.CPU
 
     @property
     def is_reach_end_of_video(self) -> bool:
@@ -92,7 +145,7 @@ class TorchCodecVideoReader:
         Returns:
         ----------
         torch.Tensor: The frame at the current position, shape (3, H, W),
-            uint8, RGB, on the CUDA device.
+            uint8, RGB, on the decode device.
 
         Raises:
         ----------
@@ -116,7 +169,7 @@ class TorchCodecVideoReader:
         Returns:
         ----------
         torch.Tensor: The frame at `frame_number`, shape (3, H, W), uint8, RGB,
-            on the CUDA device, as a view into the run's buffer.
+            on the decode device, as a view into the run's buffer.
         """
         run = self._run
         offset = (frame_number - self._run_start_frame_id) // self._freq
@@ -141,7 +194,7 @@ class TorchCodecVideoReader:
 
         Returns:
         ----------
-        torch.Tensor: The run, shape (n, 3, H, W), uint8, RGB, on the CUDA
+        torch.Tensor: The run, shape (n, 3, H, W), uint8, RGB, on the decode
             device, where n is at most `decode_run_length` frames of `freq`
             apart and never reaches past the end of the video.
         """
@@ -167,7 +220,7 @@ class TorchCodecVideoReader:
         Returns:
         ----------
         torch.Tensor: The frame at `frame_number`, shape (3, H, W), uint8,
-            RGB, on the CUDA device.
+            RGB, on the decode device.
         """
         return self._decoder[frame_number].data
 

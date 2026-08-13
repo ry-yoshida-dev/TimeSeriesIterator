@@ -1,3 +1,5 @@
+from torch_modules import Device
+
 from .backend import VideoBackend
 from .reader import VideoFrameReader
 
@@ -6,6 +8,7 @@ def build_video_reader(
     video_path: str,
     iter_start_frame: int,
     freq: int,
+    device: Device,
 ) -> VideoFrameReader:
     """
     Build the frame reader a backend provides.
@@ -23,6 +26,10 @@ def build_video_reader(
         Frame index to start reading from.
     freq: int
         Step size between yielded frames.
+    device: Device
+        Device the decode runs on, which `VideoBackend.TORCHCODEC` resolves
+        against what this machine offers. Ignored by `VideoBackend.OPENCV`,
+        which decodes on the CPU whatever this says.
 
     Returns:
     ----------
@@ -42,4 +49,5 @@ def build_video_reader(
                 video_path=video_path,
                 iter_start_frame=iter_start_frame,
                 freq=freq,
+                device=device,
             )
