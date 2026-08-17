@@ -123,6 +123,42 @@ class VideoIterator(TimeSeriesIterator):
             if frame is not None:
                 return frame
 
+    def _skip_data(self) -> bool:
+        """
+        Advance one frame without decoding it.
+
+        Mirrors `_next_data`'s file-rollover loop exactly, but asks the reader
+        to skip the frame instead of decoding it.
+
+        Returns:
+        ----------
+        bool: Whether a frame remained to skip.
+        """
+        while True:
+            if self.video_reader is None or self.video_reader.is_reach_end_of_video:
+                file_index = self.file_id_manager.next_id
+                if file_index >= len(self.paths):
+                    return False
+
+                if self.video_reader is not None:
+                    self.video_reader.release()
+
+                self.video_reader = build_video_reader(
+                    backend=self.params.video_backend,
+                    video_path=self.paths[file_index],
+                    iter_start_frame=self.start_frame_index,
+                    freq=self.params.sampling_freq,
+                    device=self.params.decode_device,
+                    )
+
+                self._update_start_index()
+
+            try:
+                self.video_reader.skip()
+            except StopIteration:
+                continue
+            return True
+
     def _update_start_index(self) -> None:
         """
         Update the start index of the video reader to ensure that the reading the frame of next video file is correct.

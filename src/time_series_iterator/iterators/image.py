@@ -46,6 +46,17 @@ class ImageIterator(TimeSeriesIterator):
             return None
         return cv2.imread(self.paths[index])
 
+    def _skip_data(self) -> bool:
+        """
+        Advance past one image without reading it from disk.
+
+        Returns:
+        ----------
+        bool: Whether an image remained to skip.
+        """
+        index = self.file_id_manager.next_id
+        return index < len(self.paths)
+
     def close(self):
         pass
 

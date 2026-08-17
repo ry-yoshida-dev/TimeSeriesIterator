@@ -84,7 +84,7 @@ class TimeSeriesIterator(ABC):
             The next data from the time series iterator.
             int: The frame id of the next data.
             NumericArray: The next data.
-        
+
         Raises:
         -------
         StopIteration: If the end of the time series data is reached.
@@ -94,12 +94,62 @@ class TimeSeriesIterator(ABC):
         if data is None:
             raise StopIteration
 
+        return self._advance_time_id_or_stop(), data
+
+    def skip(self) -> int:
+        """
+        Advance one step without keeping its data, when the backend allows it.
+
+        Falls back to fully decoding and discarding the step's data when the
+        backend exposes no cheaper path, so a caller may always call this
+        instead of `next()` and still see the same end-of-stream behavior --
+        the id bookkeeping is identical to `__next__`.
+
+        Returns:
+        -------
+        int: The time id of the step just skipped.
+
+        Raises:
+        -------
+        StopIteration: If the end of the time series data is reached.
+        """
+        if not self._skip_data():
+            raise StopIteration
+
+        return self._advance_time_id_or_stop()
+
+    def _advance_time_id_or_stop(self) -> int:
+        """
+        Resolve and record the time id the step just taken corresponds to.
+
+        Returns:
+        -------
+        int: The time id.
+
+        Raises:
+        -------
+        StopIteration: If the time id lies past the configured end.
+        """
         self.time_id = self.time_id_manager.next_id
 
         if self.params.is_exceeded_end_time_id(self.time_id):
             raise StopIteration
 
-        return self.time_id, data
+        return self.time_id
+
+    def _skip_data(self) -> bool:
+        """
+        Advance one step without keeping its data.
+
+        Default implementation still decodes through `_next_data`, since the
+        base class has no backend-specific cheaper path; a subclass whose
+        backend can skip more cheaply overrides this.
+
+        Returns:
+        -------
+        bool: Whether a step remained to skip.
+        """
+        return self._next_data() is not None
 
     def with_tqdm(self, *, total: int | None = None, **tqdm_kwargs: Any) -> tqdm[tuple[int, NumericArray]]:
         """

@@ -72,3 +72,17 @@ class VideoFrameReader(Protocol):
         Release the resources the reader holds.
         """
         ...
+
+    def skip(self) -> None:
+        """
+        Advance past the current frame without decoding it.
+
+        Worth calling instead of `__next__` when a caller already knows it has
+        no use for the frame's pixels -- e.g. it is about to be answered from
+        a detection cache instead.
+
+        Raises:
+        ----------
+        StopIteration: If the current position is past the last frame.
+        """
+        ...

@@ -208,6 +208,22 @@ class TorchCodecVideoReader:
         self._run_start_frame_id = start_frame_id
         return run
 
+    def skip(self) -> None:
+        """
+        Advance past the current frame without decoding it.
+
+        Only moves `_next_frame_id`, so a decode requested later still starts
+        a fresh run from wherever iteration then stands -- the held run's
+        buffer never contains a skipped frame's pixels.
+
+        Raises:
+        ----------
+        StopIteration: If the current position is past the last frame.
+        """
+        if self.is_reach_end_of_video:
+            raise StopIteration
+        self._next_frame_id += self._freq
+
     def extract_frame(self, frame_number: int) -> torch.Tensor:
         """
         Return one frame at an arbitrary index, without advancing iteration.
