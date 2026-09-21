@@ -18,6 +18,7 @@ general `TimeSeriesIterationParameters` with the video-only settings
 | [backend.py](./backend.py) | `VideoBackend` enum selecting the decode backend (`OPENCV` / `TORCHCODEC`) |
 | [parameters.py](./parameters.py) | `VideoIterationParameters`, extending `TimeSeriesIterationParameters` with video-only settings |
 | [reader.py](./reader.py) | `VideoFrameReader` protocol every backend implements |
+| [frame_location.py](./frame_location.py) | `VideoFrameLocation`, the file and in-file index one frame of the scene resolves to |
 | [factory.py](./factory.py) | Builds the reader for a given `VideoBackend`, importing a backend's module only when it is selected |
 | [readers/](./readers/) | Per-backend `VideoFrameReader` implementations that need adapter logic (`torchcodec.py`); `VideoBackend.OPENCV` needs none, so `factory.py` constructs `opencv_video.VideoReader` directly |
 

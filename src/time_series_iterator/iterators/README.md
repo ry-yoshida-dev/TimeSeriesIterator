@@ -67,3 +67,12 @@ for frame_id, frame in tqdm_iterator:
 frame = iterator.get_image(30)
 cv2.imwrite("output/frame_0030.jpg", frame)
 ```
+
+## Random Access
+
+`get_image(time_id)` reads one element without advancing iteration, and takes
+the same time id the loop yields, so `iterator.get_image(time_id)` returns what
+that step of the loop returned. `sampling_freq` does not restrict it: a time id
+the loop steps over still resolves, since it only skips stored elements rather
+than removing them. A time id outside the media, or off the pre-sampled grid
+described in the [package README](../README.md), raises `ValueError`.

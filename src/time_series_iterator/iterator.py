@@ -171,6 +171,64 @@ class TimeSeriesIterator(ABC):
             total = len(self)
         return tqdm(self, total=total, **tqdm_kwargs)
 
+    def media_index_of(self, time_id: int) -> int:
+        """
+        Convert a time id into an index into the stored media.
+
+        The stored media holds one element per `pre_sampled_freq` time ids,
+        so only the ids on the grid `index_base`, `index_base +
+        pre_sampled_freq`, ... address an element. `sampling_freq` is the
+        stride of iteration rather than a property of the media, so an id
+        this iterator's loop skips still converts.
+
+        Parameters:
+        ----------
+        time_id: int
+            A time id as yielded by `__next__`.
+
+        Returns:
+        -------
+        int: Zero-based index into the stored media.
+
+        Raises:
+        -------
+        ValueError: If the time id is outside the media or off the
+            pre-sampled grid.
+        """
+        offset = time_id - self.params.index_base.value
+        if offset < 0 or time_id > self.end_time_id:
+            raise ValueError(
+                f"time_id must be between {self.params.index_base.value} "
+                + f"and {self.end_time_id}, given: {time_id}"
+                )
+        if offset % self.params.pre_sampled_freq != 0:
+            raise ValueError(
+                "time_id must fall on the pre-sampled grid: "
+                + f"(time_id - {self.params.index_base.value}) must be a multiple "
+                + f"of pre_sampled_freq ({self.params.pre_sampled_freq}), "
+                + f"given: {time_id}"
+                )
+        return offset // self.params.pre_sampled_freq
+
+    @abstractmethod
+    def get_image(self, time_id: int) -> NumericArray:
+        """
+        Read one element at an arbitrary time id, without advancing iteration.
+
+        Parameters:
+        ----------
+        time_id: int
+            A time id as yielded by `__next__`.
+
+        Returns:
+        -------
+        NumericArray: The element stored at `time_id`.
+
+        Raises:
+        -------
+        ValueError: If the time id addresses no stored element.
+        """
+
     @abstractmethod
     def _next_data(self) -> NumericArray | None:
         pass

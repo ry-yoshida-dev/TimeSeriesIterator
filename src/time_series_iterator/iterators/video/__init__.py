@@ -7,6 +7,7 @@ from types import TracebackType
 from id_manager import IDManager
 from .backend import VideoBackend
 from .factory import build_video_reader
+from .frame_location import VideoFrameLocation
 from .parameters import VideoIterationParameters
 from .reader import VideoFrameReader
 from ...iterator import TimeSeriesIterator
@@ -15,6 +16,7 @@ from ...utils import MediaType
 
 __all__ = [
     "VideoBackend",
+    "VideoFrameLocation",
     "VideoIterationParameters",
     "VideoIterator",
 ]
@@ -202,44 +204,65 @@ class VideoIterator(TimeSeriesIterator):
     def end_time_id(self) -> int:
         return (self.end_frame_id - 1)*self.params.pre_sampled_freq + self.params.index_base.value
 
-    def get_image(self, time_id: int) -> NumericArray:
+    def _locate_frame(self, frame_index: int) -> VideoFrameLocation:
         """
-        Get the frame from the video.
+        Resolve a frame index spanning every video file into one file's frame.
 
         Parameters:
         ----------
-        frame_id: int
-            The frame id of the video.
+        frame_index: int
+            Zero-based index counted across the video files in order.
 
         Returns:
         ----------
-        NumericArray: The frame from the video.
+        VideoFrameLocation: The file holding the frame, and its index there.
 
         Raises:
         ----------
-        ValueError: If the frame id is out of range.
+        ValueError: If the index lies past the last frame of the last file.
         """
-        if time_id > self.end_frame_id:
-            raise ValueError(f"FrameID: {time_id} is out of range")
+        previous_end_frame_id = 0
+        for file_index, end_frame_id in enumerate(self._cumulative_end_frame_ids):
+            if frame_index < end_frame_id:
+                return VideoFrameLocation(
+                    file_index=file_index,
+                    frame_index=frame_index - previous_end_frame_id,
+                    )
+            previous_end_frame_id = end_frame_id
+        raise ValueError(
+            f"Frame index is out of range, given: {frame_index}, "
+            + f"max: {self.end_frame_id - 1}"
+            )
 
-        video_file_index = 0
-        end_frame_id = 0 # sum of the frame ids of the previous video files.
-        for tmp_video_file_index, tmp_end_frame_id in enumerate(self._cumulative_end_frame_ids):
-            if time_id > tmp_end_frame_id:
-                video_file_index = tmp_video_file_index + 1
-                end_frame_id = self._cumulative_end_frame_ids[tmp_video_file_index]
-                break
+    def get_image(self, time_id: int) -> NumericArray:
+        """
+        Read the frame at an arbitrary time id, without advancing iteration.
 
+        Parameters:
+        ----------
+        time_id: int
+            A time id as yielded by `__next__`.
+
+        Returns:
+        ----------
+        NumericArray: The frame stored at `time_id`.
+
+        Raises:
+        ----------
+        ValueError: If the time id addresses no stored frame.
+        """
+        location = self._locate_frame(self.media_index_of(time_id))
         video_reader = build_video_reader(
             backend=self.params.video_backend,
-            video_path=self.paths[video_file_index],
+            video_path=self.paths[location.file_index],
             iter_start_frame=0,
             freq=1,
             device=self.params.decode_device,
             )
-        frame = video_reader.extract_frame(frame_number=(time_id - end_frame_id))
-        video_reader.release()
-        return frame
+        try:
+            return video_reader.extract_frame(frame_number=location.frame_index)
+        finally:
+            video_reader.release()
 
     def __str__(self) -> str:
         return f"VideoIterator(paths[0]={self.paths[0]}, params={self.params})"

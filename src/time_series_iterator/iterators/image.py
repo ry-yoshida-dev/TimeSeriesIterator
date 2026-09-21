@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import cv2
 from types import TracebackType
 
@@ -57,13 +59,13 @@ class ImageIterator(TimeSeriesIterator):
         index = self.file_id_manager.next_id
         return index < len(self.paths)
 
-    def close(self):
+    def close(self) -> None:
         pass
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.close()
 
-    def __enter__(self):
+    def __enter__(self) -> ImageIterator:
         return self
 
     def __exit__(
@@ -81,31 +83,28 @@ class ImageIterator(TimeSeriesIterator):
     def media_type(self) -> MediaType:
         return MediaType.IMAGE
 
-    def get_image(self, frame_id: int) -> NumericArray:
+    def get_image(self, time_id: int) -> NumericArray:
         """
-        Get the image from the image iterator.
+        Read the image at an arbitrary time id, without advancing iteration.
 
         Parameters:
         ----------
-        frame_id: int
-            The frame id of the image.
+        time_id: int
+            A time id as yielded by `__next__`.
 
         Returns:
         ----------
-        NumericArray: The image from the image iterator.
+        NumericArray: The image stored at `time_id`.
 
         Raises:
         ----------
-        ValueError: If the frame id is out of range.
+        ValueError: If the time id addresses no stored image, or the image
+            cannot be read.
         """
-        if frame_id < 0:
-            raise ValueError(f"Frame id must be greater than or equal to 0, given: {frame_id}")
-        if frame_id >= len(self.paths) + self.params.index_base.value:
-            raise ValueError(f"Frame id is out of range, given: {frame_id}, max: {len(self.paths) + self.params.index_base.value - 1}")
-        target_index = frame_id-self.params.index_base.value
-        image = cv2.imread(self.paths[target_index])
+        path = self.paths[self.media_index_of(time_id)]
+        image = cv2.imread(path)
         if image is None:
-            raise ValueError(f"Failed to load image from path: {self.paths[target_index]}")
+            raise ValueError(f"Failed to load image from path: {path}")
         return image
 
     def __str__(self) -> str:
