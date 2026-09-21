@@ -14,6 +14,13 @@ Package for iterating time-series media data in ascending order with configurabl
 | [utils/](./utils/README.md) | Utility enums such as media type and index base |
 | [iterators/](./iterators/README.md) | Concrete iterator implementations for image/video inputs |
 
+## Length and Step Count
+
+`len(iterator)` is the size of the underlying media, while
+`iterator.remaining_step_count` is how many pairs the loop still yields under
+`start_time_id`, `end_time_id` and the sampling frequencies. The latter is what
+`with_progress_bar` uses as its default bar length.
+
 ## Parameters
 
 `TimeSeriesIterationParameters` holds the settings common to every media type.

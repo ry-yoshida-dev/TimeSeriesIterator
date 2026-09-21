@@ -1,10 +1,10 @@
 from __future__ import annotations
 import os
-from typing import Any
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator, Iterator
 from id_manager import IDManager
-from tqdm import tqdm
+from progress_bar import ProgressBarBackend, ProgressBarReporter
 
 from .parameters import TimeSeriesIterationParameters
 from .types import NumericArray
@@ -71,7 +71,7 @@ class TimeSeriesIterator(ABC):
             if not os.path.exists(path):
                 raise FileNotFoundError(f"File not found: {path}")
  
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[int, NumericArray]]:
         return self
 
     def __next__(self) -> tuple[int, NumericArray]:
@@ -151,25 +151,93 @@ class TimeSeriesIterator(ABC):
         """
         return self._next_data() is not None
 
-    def with_tqdm(self, *, total: int | None = None, **tqdm_kwargs: Any) -> tqdm[tuple[int, NumericArray]]:
+    @property
+    def remaining_step_count(self) -> int:
         """
-        Wrap this iterator with tqdm for use in a for loop.
+        Number of steps this iterator still yields under its parameters.
 
-        Parameters
+        Counted from the next time id the iterator will issue, so a partially
+        consumed iterator reports what is left rather than its full size.
+        `len(self)` is the size of the underlying media instead, and ignores
+        `start_time_id`, `end_time_id` and the sampling frequencies.
+
+        Returns:
+        -------
+        int: The number of steps left, or 0 once the iterator is exhausted.
+        """
+        last_time_id = self.end_time_id
+        if self.params.is_set_end_time_id:
+            last_time_id = min(last_time_id, self.params.end_time_id)
+
+        next_time_id = self.time_id_manager.current_id
+        if next_time_id > last_time_id:
+            return 0
+
+        return (last_time_id - next_time_id) // self.params.actual_sampling_freq + 1
+
+    def with_progress_bar(
+        self,
+        *,
+        total: int | None = None,
+        description: str = "",
+        unit: str = "it",
+        is_leave_visible: bool = True,
+        backend: ProgressBarBackend | None = None,
+        is_enabled: bool = True,
+        ) -> Generator[tuple[int, NumericArray], None, None]:
+        """
+        Wrap this iterator with a progress bar for use in a for loop.
+
+        The backend is resolved at runtime by `progress_bar`, so the bar falls
+        back to a dependency-free text bar when no progress bar library is
+        installed or the output is redirected.
+
+        Parameters:
         ----------
-        total:
-            Bar length. Defaults to len(self).
-        **tqdm_kwargs:
-            Forwarded to tqdm (e.g. desc, unit, leave).
+        total: int | None
+            Bar length. Defaults to `remaining_step_count`, which is the
+            number of pairs the loop actually yields.
+        description: str
+            Label rendered next to the bar.
+        unit: str
+            Name of a single step.
+        is_leave_visible: bool
+            Whether the finished bar stays on screen.
+        backend: ProgressBarBackend | None
+            Backend to render with, or None to pick the best installed one.
+        is_enabled: bool
+            Whether the bar is displayed at all.
+
+        Returns:
+        -------
+        Generator[tuple[int, NumericArray], None, None]: The pairs yielded by
+            this iterator, unchanged, with the bar advanced once per pair.
+
+        Notes:
+        -----
+        The bar is finalized once the returned iterator is exhausted or
+        closed. A loop that breaks early while a reference to the iterator
+        survives leaves the bar open until that reference is dropped, so
+        wrap the iterator in `contextlib.closing` in that case.
 
         Example
         -------
-        >>> for time_id, data in iterator.with_tqdm(desc="frames"):
+        >>> for time_id, data in iterator.with_progress_bar(description="frames"):
         ...     ...
         """
         if total is None:
-            total = len(self)
-        return tqdm(self, total=total, **tqdm_kwargs)
+            total = self.remaining_step_count
+
+        reporter = ProgressBarReporter(
+            total=total,
+            description=description,
+            unit=unit,
+            is_leave_visible=is_leave_visible,
+            backend=backend,
+            is_enabled=is_enabled,
+            )
+
+        return reporter.report(self)
 
     def media_index_of(self, time_id: int) -> int:
         """

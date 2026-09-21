@@ -33,9 +33,9 @@ params = VideoIterationParameters(video_backend=VideoBackend.TORCHCODEC)
 iterator = VideoIterator(paths=["video.mp4"], params=params)
 ```
 
-`VideoBackend.TORCHCODEC` requires the optional `torchcodec` extra
-(`pip install time-series-iterator[torchcodec]`); `VideoBackend.OPENCV` (the
-default) does not.
+`VideoBackend.TORCHCODEC` decodes through `torchcodec`, which the package
+always installs; only the Linux build is CUDA-enabled. `VideoBackend.OPENCV` is
+the default.
 
 `decode_device` picks which device that backend decodes on, and defaults to
 `Device.detect()`, so the same configuration runs on a GPU host and a CPU-only

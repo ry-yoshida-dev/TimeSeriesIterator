@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Iterators for time-series media data with configurable sampling and index base."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -19,12 +19,12 @@ classifiers = [
 dependencies = [
     "id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git",
     "opencv-video @ git+https://github.com/ry-yoshida-dev/OpenCVVideo.git",
+    "progress-bar[tqdm] @ git+https://github.com/ry-yoshida-dev/ProgressBar.git",
     "torch_modules @ git+https://github.com/ry-yoshida-dev/TorchModules.git",
-    "torchcodec @ git+https://github.com/ry-yoshida-dev/torchcodec.git",
+    "torchcodec",
     "numpy",
     "opencv-contrib-python",
     "torch",
-    "tqdm",
 ]
 
 
@@ -36,4 +36,6 @@ Homepage = "https://github.com/ry-yoshida-dev/TimeSeriesIterator"
 where = ["src"]
 
 [tool.uv.sources]
-torchcodec = { path = "wheels/torchcodec-0.16.0a0+7861421-cp314-cp314-linux_x86_64.whl" }
+torchcodec = [
+    { path = "wheels/torchcodec-0.16.0a0+7861421-cp314-cp314-linux_x86_64.whl", marker = "sys_platform == 'linux'" },
+]

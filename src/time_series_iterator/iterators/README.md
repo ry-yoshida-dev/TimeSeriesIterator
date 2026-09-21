@@ -20,7 +20,6 @@ The iterators are designed to handle sequential data processing with configurabl
 
 ```python
 import glob
-from tqdm import tqdm
 from time_series_iterator import ImageIterator, TimeSeriesIterationParameters
 
 params = TimeSeriesIterationParameters(
@@ -33,7 +32,7 @@ params = TimeSeriesIterationParameters(
 image_paths = sorted(glob.glob("data/images/*.png"))
 image_iterator = ImageIterator(paths=image_paths, params=params)
 
-for frame_id, image in tqdm(image_iterator):
+for frame_id, image in image_iterator.with_progress_bar(description="images"):
     pass
 ```
 
@@ -42,7 +41,7 @@ for frame_id, image in tqdm(image_iterator):
 ```python
 import glob
 import cv2
-from tqdm import tqdm
+from contextlib import closing
 from time_series_iterator import VideoIterator, VideoIterationParameters, IndexBase
 
 paths = sorted(glob.glob("data/videos/*.mp4"))
@@ -56,13 +55,13 @@ params = VideoIterationParameters(
 )
 iterator = VideoIterator(paths=paths, params=params)
 
-tqdm_iterator = iter(tqdm(iterator))
-next(iterator)
-next(tqdm_iterator)
+with closing(iterator.with_progress_bar(description="frames")) as progress_iterator:
+    next(iterator)
+    next(progress_iterator)
 
-for frame_id, frame in tqdm_iterator:
-    if frame_id > 10:
-        break
+    for frame_id, frame in progress_iterator:
+        if frame_id > 10:
+            break
 
 frame = iterator.get_image(30)
 cv2.imwrite("output/frame_0030.jpg", frame)
