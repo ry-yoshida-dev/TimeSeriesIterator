@@ -200,7 +200,7 @@ class VideoIterator(TimeSeriesIterator):
 
     @property
     def end_time_id(self) -> int:
-        return self.end_frame_id + self.params.index_base.value - 1
+        return (self.end_frame_id - 1)*self.params.pre_sampled_freq + self.params.index_base.value
 
     def get_image(self, time_id: int) -> NumericArray:
         """

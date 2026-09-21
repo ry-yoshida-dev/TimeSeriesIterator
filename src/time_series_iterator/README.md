@@ -26,6 +26,13 @@ Package for iterating time-series media data in ascending order with configurabl
 | sampling_freq | The sampling frequency from input data of the time series data |
 | raw_sampling_rate | The sampling rate of the raw time series data (e.g. fps) |
 | index_base | The base index of the time series data - ZERO or ONE |
-| start_time_id | The start time id of the time series data (counted from index_base) |
+| start_time_id | The start time id of the time series data (counted from index_base, and must land on the pre-sampled grid) |
 | end_time_id | The end time id of the time series data (-1 indicates iteration until the last time) |
+
+Every time id the iterators emit lies on the grid `index_base`,
+`index_base + pre_sampled_freq`, `index_base + 2 * pre_sampled_freq`, ...,
+since the stored media holds one element per `pre_sampled_freq` time ids.
+`start_time_id` must therefore be one of those ids, and
+`TimeSeriesIterationParameters` raises `ValueError` otherwise. `end_time_id`
+is only an upper bound, so it may sit anywhere.
 

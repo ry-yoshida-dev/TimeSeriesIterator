@@ -32,13 +32,20 @@ class TimeSeriesIterationParameters:
     start_time_id: int = 1
     end_time_id: int = -1
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._validate_parameters()
 
-    def _validate_parameters(self):
+    def _validate_parameters(self) -> None:
         if self.start_time_id < self.index_base.value:
             raise ValueError(
                 f"start_step_id must be greater than or equal to the index base ({self.index_base.value})"
+                )
+        if (self.start_time_id - self.index_base.value) % self.pre_sampled_freq != 0:
+            raise ValueError(
+                "start_time_id must fall on the pre-sampled grid: "
+                + f"(start_time_id - {self.index_base.value}) must be a multiple "
+                + f"of pre_sampled_freq ({self.pre_sampled_freq}), "
+                + f"given: {self.start_time_id}"
                 )
         if self.end_time_id <= 0 and self.end_time_id != -1:
             raise ValueError(
@@ -52,13 +59,17 @@ class TimeSeriesIterationParameters:
     @property
     def offset_start_id(self) -> int:
         """
-        Start offset for sequence access: ``start_time_id`` minus ``index_base``.
+        Start offset for sequence access.
+
+        The underlying sequence stores one element per ``pre_sampled_freq``
+        time ids, so the offset is ``start_time_id`` minus ``index_base``
+        divided by ``pre_sampled_freq``.
 
         Returns:
         --------
         int: Zero-based index into the underlying time series sequence.
         """
-        return self.start_time_id - self.index_base.value
+        return (self.start_time_id - self.index_base.value) // self.pre_sampled_freq
 
     @property
     def actual_sampling_freq(self) -> int:

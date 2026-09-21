@@ -117,4 +117,4 @@ class ImageIterator(TimeSeriesIterator):
 
     @property
     def end_time_id(self) -> int:
-        return (len(self.paths)-1)*self.params.pre_sampled_freq*self.params.sampling_freq + self.params.index_base.value
+        return (len(self.paths)-1)*self.params.pre_sampled_freq + self.params.index_base.value
