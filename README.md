@@ -33,6 +33,11 @@ CUDA-enabled wheel committed under `wheels/`, which decodes on the GPU's NVDEC
 hardware. Every other platform, and plain `pip` on any platform, resolves it to
 the published `torchcodec` release, which decodes on the CPU.
 
+Video decoding goes through
+[VideoHandler](https://github.com/ry-yoshida-dev/VideoHandler), which provides
+both backends. `torchcodec` loads the system FFmpeg (versions 4 to 9) at the
+first decode, so install FFmpeg before using `VideoBackend.TORCHCODEC`.
+
 ## Progress Bar
 
 `TimeSeriesIterator.with_progress_bar` wraps the iterator with
