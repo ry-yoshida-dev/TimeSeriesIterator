@@ -5,11 +5,9 @@ import numpy as np
 from types import TracebackType
 
 from id_manager import IDManager
-from .backend import VideoBackend
-from .factory import build_video_reader
+from video_handler import VideoBackend, VideoFrame, VideoFrameReader, VideoReadParameters
 from .frame_location import VideoFrameLocation
 from .parameters import VideoIterationParameters
-from .reader import VideoFrameReader
 from ...iterator import TimeSeriesIterator
 from ...types import NumericArray
 from ...utils import MediaType
@@ -62,7 +60,8 @@ class VideoIterator(TimeSeriesIterator):
             step=1,
             )
         # manager for the frame index of the video files.
-        self.video_reader: VideoFrameReader | None = None
+        self._reader_factory = self.params.reader_factory
+        self.video_reader: VideoFrameReader[VideoFrame] | None = None
         self.start_frame_index = self.params.offset_start_id
         self._end_frame_ids: list[int] = self._get_end_frame_ids()
         self._cumulative_end_frame_ids: list[int] = [int(value) for value in np.cumsum(self._end_frame_ids)]
@@ -77,17 +76,36 @@ class VideoIterator(TimeSeriesIterator):
         """
         end_frame_ids: list[int] = []
         for path in self.paths:
-            video_reader = build_video_reader(
-                backend=self.params.video_backend,
-                video_path=path,
-                iter_start_frame=0,
-                freq=1,
-                device=self.params.decode_device,
-                )
-            total_frame = int(video_reader.total_frame)
-            end_frame_ids.append(total_frame)
-            video_reader.release()
+            with self._reader_factory.build(path) as video_reader:
+                end_frame_ids.append(video_reader.metadata.frame_count)
         return end_frame_ids
+
+    def _open_next_reader(self) -> bool:
+        """
+        Replace the current video reader with one for the next video file.
+
+        Returns:
+        ----------
+        bool: Whether a video file remained to open.
+        """
+        file_index = self.file_id_manager.next_id
+        if file_index >= len(self.paths):
+            return False
+
+        if self.video_reader is not None:
+            self.video_reader.release()
+
+        self.video_reader = self._reader_factory.build(
+            self.paths[file_index],
+            VideoReadParameters(
+                start_frame=self.start_frame_index,
+                frame_step=self.params.sampling_freq,
+                ),
+            )
+
+        # update the start index of the video reader to ensure that the reading the frame of next video file is correct.
+        self._update_start_index()
+        return True
 
     def _next_data(self) -> NumericArray | None:
         """
@@ -102,24 +120,10 @@ class VideoIterator(TimeSeriesIterator):
         StopIteration: If the end of the video is reached.
         """
         while True:
-            if self.video_reader is None or self.video_reader.is_reach_end_of_video:
-                file_index = self.file_id_manager.next_id
-                if file_index >= len(self.paths):
+            if self.video_reader is None or self.video_reader.is_exhausted:
+                if not self._open_next_reader():
                     return None
-
-                if self.video_reader is not None:
-                    self.video_reader.release()
-
-                self.video_reader = build_video_reader(
-                    backend=self.params.video_backend,
-                    video_path=self.paths[file_index],
-                    iter_start_frame=self.start_frame_index,
-                    freq=self.params.sampling_freq,
-                    device=self.params.decode_device,
-                    )
-
-                # update the start index of the video reader to ensure that the reading the frame of next video file is correct.
-                self._update_start_index()
+                continue
 
             frame = next(self.video_reader, None)
             if frame is not None:
@@ -137,23 +141,10 @@ class VideoIterator(TimeSeriesIterator):
         bool: Whether a frame remained to skip.
         """
         while True:
-            if self.video_reader is None or self.video_reader.is_reach_end_of_video:
-                file_index = self.file_id_manager.next_id
-                if file_index >= len(self.paths):
+            if self.video_reader is None or self.video_reader.is_exhausted:
+                if not self._open_next_reader():
                     return False
-
-                if self.video_reader is not None:
-                    self.video_reader.release()
-
-                self.video_reader = build_video_reader(
-                    backend=self.params.video_backend,
-                    video_path=self.paths[file_index],
-                    iter_start_frame=self.start_frame_index,
-                    freq=self.params.sampling_freq,
-                    device=self.params.decode_device,
-                    )
-
-                self._update_start_index()
+                continue
 
             try:
                 self.video_reader.skip()
@@ -167,7 +158,7 @@ class VideoIterator(TimeSeriesIterator):
         """
         if self.video_reader is None:
             return
-        remaining = (self.video_reader.total_frame - self.start_frame_index) % self.params.sampling_freq
+        remaining = (self.video_reader.metadata.frame_count - self.start_frame_index) % self.params.sampling_freq
         self.start_frame_index = (self.params.sampling_freq - remaining) % self.params.sampling_freq
 
     def close(self) -> None:
@@ -252,17 +243,8 @@ class VideoIterator(TimeSeriesIterator):
         ValueError: If the time id addresses no stored frame.
         """
         location = self._locate_frame(self.media_index_of(time_id))
-        video_reader = build_video_reader(
-            backend=self.params.video_backend,
-            video_path=self.paths[location.file_index],
-            iter_start_frame=0,
-            freq=1,
-            device=self.params.decode_device,
-            )
-        try:
-            return video_reader.extract_frame(frame_number=location.frame_index)
-        finally:
-            video_reader.release()
+        with self._reader_factory.build(self.paths[location.file_index]) as video_reader:
+            return video_reader.read_frame_at(location.frame_index)
 
     def __str__(self) -> str:
         return f"VideoIterator(paths[0]={self.paths[0]}, params={self.params})"

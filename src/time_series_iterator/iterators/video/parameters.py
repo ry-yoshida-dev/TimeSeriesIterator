@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 
 from torch_modules import Device
+from video_handler import TorchCodecReadOptions, VideoBackend, VideoReaderFactory
 
 from ...parameters import TimeSeriesIterationParameters
-from .backend import VideoBackend
 
 @dataclass
 class VideoIterationParameters(TimeSeriesIterationParameters):
@@ -24,3 +24,18 @@ class VideoIterationParameters(TimeSeriesIterationParameters):
     video_backend: VideoBackend = VideoBackend.OPENCV
     decode_device: Device = field(default_factory=Device.detect)
     start_video_file_index: int = 0
+
+    @property
+    def reader_factory(self) -> VideoReaderFactory:
+        """
+        Factory building the frame readers these parameters describe.
+
+        Returns:
+        --------
+        VideoReaderFactory: Factory for `video_backend`, decoding on
+            `decode_device` when the backend is `VideoBackend.TORCHCODEC`.
+        """
+        return VideoReaderFactory(
+            backend=self.video_backend,
+            torchcodec_options=TorchCodecReadOptions(device=self.decode_device),
+            )

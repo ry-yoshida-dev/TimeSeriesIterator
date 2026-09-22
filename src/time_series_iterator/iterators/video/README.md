@@ -3,9 +3,11 @@
 ## Overview
 
 `VideoIterator` reads frames sequentially across a scene's video files. Frame
-decoding itself is delegated to a backend selected by `VideoBackend`
-(`VideoIterationParameters.video_backend`), so `VideoIterator` never depends
-on which one is behind it. `VideoIterationParameters` extends the package's
+decoding itself is delegated to [VideoHandler](https://github.com/ry-yoshida-dev/VideoHandler):
+`VideoIterationParameters.reader_factory` builds a `video_handler.VideoReaderFactory`
+for the selected `VideoBackend`, and every reader it returns implements
+`video_handler.VideoFrameReader`, so `VideoIterator` never depends on which
+backend is behind it. `VideoIterationParameters` extends the package's
 general `TimeSeriesIterationParameters` with the video-only settings
 (`video_backend`, `decode_device`, `start_video_file_index`), so
 `TimeSeriesIterationParameters` itself stays media-agnostic.
@@ -15,12 +17,8 @@ general `TimeSeriesIterationParameters` with the video-only settings
 | Component | Description |
 |-----------|-------------|
 | [\_\_init\_\_.py](./__init__.py) | `VideoIterator`, iterating frames across a scene's video files against whichever backend is configured |
-| [backend.py](./backend.py) | `VideoBackend` enum selecting the decode backend (`OPENCV` / `TORCHCODEC`) |
-| [parameters.py](./parameters.py) | `VideoIterationParameters`, extending `TimeSeriesIterationParameters` with video-only settings |
-| [reader.py](./reader.py) | `VideoFrameReader` protocol every backend implements |
+| [parameters.py](./parameters.py) | `VideoIterationParameters`, extending `TimeSeriesIterationParameters` with video-only settings and building the `VideoReaderFactory` |
 | [frame_location.py](./frame_location.py) | `VideoFrameLocation`, the file and in-file index one frame of the scene resolves to |
-| [factory.py](./factory.py) | Builds the reader for a given `VideoBackend`, importing a backend's module only when it is selected |
-| [readers/](./readers/) | Per-backend `VideoFrameReader` implementations that need adapter logic (`torchcodec.py`); `VideoBackend.OPENCV` needs none, so `factory.py` constructs `opencv_video.VideoReader` directly |
 
 ## Example
 
@@ -33,9 +31,10 @@ params = VideoIterationParameters(video_backend=VideoBackend.TORCHCODEC)
 iterator = VideoIterator(paths=["video.mp4"], params=params)
 ```
 
-`VideoBackend.TORCHCODEC` decodes through `torchcodec`, which the package
-always installs; only the Linux build is CUDA-enabled. `VideoBackend.OPENCV` is
-the default.
+`VideoBackend` is re-exported from `video_handler`. `VideoBackend.OPENCV` (the
+default) yields BGR `(H, W, 3)` NumPy frames; `VideoBackend.TORCHCODEC` yields
+RGB `(3, H, W)` tensors on the decode device. `torchcodec` is always installed,
+but only the Linux build is CUDA-enabled.
 
 `decode_device` picks which device that backend decodes on, and defaults to
 `Device.detect()`, so the same configuration runs on a GPU host and a CPU-only
