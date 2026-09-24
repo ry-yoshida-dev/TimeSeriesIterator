@@ -25,6 +25,9 @@ class VideoIterator(TimeSeriesIterator):
         The end frame ids of the video files.
     _cumulative_end_frame_ids: list[int]
         The cumulative end frame ids of the video files.
+    _random_access_readers: dict[int, VideoFrameReader[VideoFrame]]
+        Readers serving `get_image`, keyed by file index, opened on first use
+        and kept open until `close`.
     """
     def __init__(
         self,
@@ -54,6 +57,7 @@ class VideoIterator(TimeSeriesIterator):
         # manager for the frame index of the video files.
         self._reader_factory = self.params.reader_factory
         self.video_reader: VideoFrameReader[VideoFrame] | None = None
+        self._random_access_readers: dict[int, VideoFrameReader[VideoFrame]] = {}
         self.start_frame_index = self.params.offset_start_id
         self._end_frame_ids: list[int] = self._get_end_frame_ids()
         self._cumulative_end_frame_ids: list[int] = [int(value) for value in np.cumsum(self._end_frame_ids)]
@@ -157,6 +161,9 @@ class VideoIterator(TimeSeriesIterator):
         if self.video_reader is not None:
             self.video_reader.release()
             self.video_reader = None
+        for random_access_reader in self._random_access_readers.values():
+            random_access_reader.release()
+        self._random_access_readers.clear()
 
     def __del__(self) -> None:
         self.close()
@@ -217,9 +224,36 @@ class VideoIterator(TimeSeriesIterator):
             + f"max: {self.end_frame_id - 1}"
             )
 
+    def _random_access_reader_for(self, file_index: int) -> VideoFrameReader[VideoFrame]:
+        """
+        Return the reader serving random access into one video file.
+
+        Opening a reader costs far more than reading one frame from an open
+        one, so each file's reader is opened on first use and kept until
+        `close`. It is separate from the iteration reader, so random access
+        never disturbs iteration.
+
+        Parameters:
+        ----------
+        file_index: int
+            Index into `paths` of the file to read.
+
+        Returns:
+        ----------
+        VideoFrameReader[VideoFrame]: The file's random-access reader.
+        """
+        random_access_reader = self._random_access_readers.get(file_index)
+        if random_access_reader is None:
+            random_access_reader = self._reader_factory.build(self.paths[file_index])
+            self._random_access_readers[file_index] = random_access_reader
+        return random_access_reader
+
     def get_image(self, time_id: int) -> NumericArray:
         """
         Read the frame at an arbitrary time id, without advancing iteration.
+
+        The file's reader stays open after the read, so repeated random access
+        into the same file pays the cost of opening it only once.
 
         Parameters:
         ----------
@@ -235,8 +269,7 @@ class VideoIterator(TimeSeriesIterator):
         ValueError: If the time id addresses no stored frame.
         """
         location = self._locate_frame(self.media_index_of(time_id))
-        with self._reader_factory.build(self.paths[location.file_index]) as video_reader:
-            return video_reader.read_frame_at(location.frame_index)
+        return self._random_access_reader_for(location.file_index).read_frame_at(location.frame_index)
 
     def __str__(self) -> str:
         return f"VideoIterator(paths[0]={self.paths[0]}, params={self.params})"

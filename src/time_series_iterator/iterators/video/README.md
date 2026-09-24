@@ -16,7 +16,7 @@ general `TimeSeriesIterationParameters` with the video-only settings
 
 | Component | Description |
 |-----------|-------------|
-| [iterator.py](./iterator.py) | `VideoIterator`, iterating frames across a scene's video files against whichever backend is configured |
+| [iterator.py](./iterator.py) | `VideoIterator`, iterating frames across a scene's video files against whichever backend is configured, and reading any one of them at random |
 | [parameters.py](./parameters.py) | `VideoIterationParameters`, extending `TimeSeriesIterationParameters` with video-only settings and building the `VideoReaderFactory` |
 | [frame_location.py](./frame_location.py) | `VideoFrameLocation`, the file and in-file index one frame of the scene resolves to |
 
@@ -30,6 +30,11 @@ from time_series_iterator import VideoBackend, VideoIterationParameters, VideoIt
 params = VideoIterationParameters(video_backend=VideoBackend.TORCHCODEC)
 iterator = VideoIterator(paths=["video.mp4"], params=params)
 ```
+
+`get_image(time_id)` reads one frame at random without disturbing iteration.
+Each file's random-access reader is opened on first use and kept until
+`close()`, so repeated random access into a file pays the cost of opening it
+only once.
 
 `VideoBackend` is re-exported from `video_handler`. `VideoBackend.OPENCV` (the
 default) yields BGR `(H, W, 3)` NumPy frames; `VideoBackend.TORCHCODEC` yields
