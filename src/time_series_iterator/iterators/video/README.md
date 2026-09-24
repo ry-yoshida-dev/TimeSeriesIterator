@@ -16,7 +16,7 @@ general `TimeSeriesIterationParameters` with the video-only settings
 
 | Component | Description |
 |-----------|-------------|
-| [\_\_init\_\_.py](./__init__.py) | `VideoIterator`, iterating frames across a scene's video files against whichever backend is configured |
+| [iterator.py](./iterator.py) | `VideoIterator`, iterating frames across a scene's video files against whichever backend is configured |
 | [parameters.py](./parameters.py) | `VideoIterationParameters`, extending `TimeSeriesIterationParameters` with video-only settings and building the `VideoReaderFactory` |
 | [frame_location.py](./frame_location.py) | `VideoFrameLocation`, the file and in-file index one frame of the scene resolves to |
 
