@@ -1,7 +1,8 @@
 numpy
 opencv-contrib-python
 torch
-torchcodec
+torchcodec @ https://github.com/ry-yoshida-dev/TimeSeriesIterator/raw/811968acc9136eebe2f386d29e5291f4de43f305/wheels/torchcodec-0.16.0a0%2B7861421-cp314-cp314-linux_x86_64.whl#sha256=bab91329bd5b5e8271ad655971c3c0b82b891d2e84af819f15328ebd90c77c9d ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version == '3.14'
+torchcodec ; sys_platform != 'linux' or platform_machine != 'x86_64' or python_version != '3.14'
 id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git
 video-handler @ git+https://github.com/ry-yoshida-dev/VideoHandler.git
 progress-bar[tqdm] @ git+https://github.com/ry-yoshida-dev/ProgressBar.git

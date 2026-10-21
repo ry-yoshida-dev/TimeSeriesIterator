@@ -28,10 +28,12 @@ pip install -r requirements.txt
 ```
 
 `torchcodec` (`VideoBackend.TORCHCODEC`) is a required dependency, but which
-build gets installed depends on the platform. On Linux, `uv` resolves it to the
-CUDA-enabled wheel committed under `wheels/`, which decodes on the GPU's NVDEC
-hardware. Every other platform, and plain `pip` on any platform, resolves it to
-the published `torchcodec` release, which decodes on the CPU.
+build gets installed depends on the platform. On Linux x86_64 with Python 3.14,
+both `uv` and `pip` resolve it to the CUDA-enabled wheel committed under
+`wheels/`, which decodes on the GPU's NVDEC hardware. The dependency points at
+that wheel by a commit-pinned URL with a SHA-256 hash, so it also resolves when
+this package is installed as a transitive Git dependency. Every other platform
+resolves it to the published `torchcodec` release, which decodes on the CPU.
 
 Video decoding goes through
 [VideoHandler](https://github.com/ry-yoshida-dev/VideoHandler), which provides
