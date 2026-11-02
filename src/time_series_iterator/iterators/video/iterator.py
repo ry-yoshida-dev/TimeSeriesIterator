@@ -7,11 +7,11 @@ from id_manager import IDManager
 from video_handler import VideoFrame, VideoFrameReader, VideoReadParameters
 from .parameters import VideoIterationParameters
 from .frame_location import VideoFrameLocation
-from ...iterator import TimeSeriesIterator
+from ..file import FileTimeSeriesIterator
 from ...types import NumericArray
-from ...utils import MediaType
+from ...utils import SourceType
 
-class VideoIterator(TimeSeriesIterator):
+class VideoIterator(FileTimeSeriesIterator):
     """
     Iterator for videos saved in a directory.
 
@@ -26,7 +26,7 @@ class VideoIterator(TimeSeriesIterator):
     _cumulative_end_frame_ids: list[int]
         The cumulative end frame ids of the video files.
     _random_access_readers: dict[int, VideoFrameReader[VideoFrame]]
-        Readers serving `get_image`, keyed by file index, opened on first use
+        Readers serving `get_sample`, keyed by file index, opened on first use
         and kept open until `close`.
     """
     def __init__(
@@ -183,8 +183,8 @@ class VideoIterator(TimeSeriesIterator):
         return self.end_frame_id
 
     @property
-    def media_type(self) -> MediaType:
-        return MediaType.VIDEO
+    def source_type(self) -> SourceType:
+        return SourceType.VIDEO
 
     @property
     def end_frame_id(self) -> int:
@@ -248,7 +248,7 @@ class VideoIterator(TimeSeriesIterator):
             self._random_access_readers[file_index] = random_access_reader
         return random_access_reader
 
-    def get_image(self, time_id: int) -> NumericArray:
+    def get_sample(self, time_id: int) -> NumericArray:
         """
         Read the frame at an arbitrary time id, without advancing iteration.
 
@@ -268,7 +268,7 @@ class VideoIterator(TimeSeriesIterator):
         ----------
         ValueError: If the time id addresses no stored frame.
         """
-        location = self._locate_frame(self.media_index_of(time_id))
+        location = self._locate_frame(self.sample_index_of(time_id))
         return self._random_access_reader_for(location.file_index).read_frame_at(location.frame_index)
 
     def __str__(self) -> str:

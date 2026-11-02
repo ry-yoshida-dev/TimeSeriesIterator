@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterator
@@ -8,7 +7,7 @@ from progress_bar import ProgressBarBackend, ProgressBarReporter
 
 from .parameters import TimeSeriesIterationParameters
 from .types import NumericArray
-from .utils import MediaType
+from .utils import SourceType
 
 class TimeSeriesIterator(ABC):
     """
@@ -18,15 +17,12 @@ class TimeSeriesIterator(ABC):
     ----------
     params: TimeSeriesIterationParameters
         The parameters for the time series iterator.
-    paths: list[str]
-        The paths to the time series data.
     time_id_manager: IDManager
         The manager for the time id.
     """
     def __init__(
-        self, 
-        params: TimeSeriesIterationParameters, 
-        paths: list[str]
+        self,
+        params: TimeSeriesIterationParameters,
         ):
         """
         Initialize the TimeSeriesIterator.
@@ -35,42 +31,15 @@ class TimeSeriesIterator(ABC):
         ----------
         params: TimeSeriesIterationParameters
             The parameters for the time series iterator.
-        paths: list[str]
-            The paths to the time series data.
         """
 
         self.params = params
-        self._validate_paths(paths)
-        self.paths = paths
 
         self.time_id_manager = IDManager(
             current_id=self.params.start_time_id,
             step=self.params.sampling_freq * self.params.pre_sampled_freq,
             )
 
-    def _validate_paths(
-        self, 
-        paths: list[str]
-        ) -> None:
-        """
-        Validate the paths.
-
-        Parameters:
-        ----------
-        paths: list[str]
-            The paths to the time series data.
-        
-        Raises:
-        -------
-        ValueError: If the paths is empty.
-        FileNotFoundError: If the file is not found.
-        """
-        if len(paths) == 0:
-            raise ValueError("Paths is empty")
-        for path in paths:
-            if not os.path.exists(path):
-                raise FileNotFoundError(f"File not found: {path}")
- 
     def __iter__(self) -> Iterator[tuple[int, NumericArray]]:
         return self
 
@@ -158,7 +127,7 @@ class TimeSeriesIterator(ABC):
 
         Counted from the next time id the iterator will issue, so a partially
         consumed iterator reports what is left rather than its full size.
-        `len(self)` is the size of the underlying media instead, and ignores
+        `len(self)` is the number of stored samples instead, and ignores
         `start_time_id`, `end_time_id` and the sampling frequencies.
 
         Returns:
@@ -239,15 +208,15 @@ class TimeSeriesIterator(ABC):
 
         return reporter.report(self)
 
-    def media_index_of(self, time_id: int) -> int:
+    def sample_index_of(self, time_id: int) -> int:
         """
-        Convert a time id into an index into the stored media.
+        Convert a time id into an index into the stored samples.
 
-        The stored media holds one element per `pre_sampled_freq` time ids,
-        so only the ids on the grid `index_base`, `index_base +
-        pre_sampled_freq`, ... address an element. `sampling_freq` is the
-        stride of iteration rather than a property of the media, so an id
-        this iterator's loop skips still converts.
+        One sample is stored per `pre_sampled_freq` time ids, so only the ids
+        on the grid `index_base`, `index_base + pre_sampled_freq`, ... address
+        a sample. `sampling_freq` is the stride of iteration rather than a
+        property of the stored data, so an id this iterator's loop skips still
+        converts.
 
         Parameters:
         ----------
@@ -256,11 +225,11 @@ class TimeSeriesIterator(ABC):
 
         Returns:
         -------
-        int: Zero-based index into the stored media.
+        int: Zero-based index into the stored samples.
 
         Raises:
         -------
-        ValueError: If the time id is outside the media or off the
+        ValueError: If the time id is outside the stored samples or off the
             pre-sampled grid.
         """
         offset = time_id - self.params.index_base.value
@@ -279,9 +248,9 @@ class TimeSeriesIterator(ABC):
         return offset // self.params.pre_sampled_freq
 
     @abstractmethod
-    def get_image(self, time_id: int) -> NumericArray:
+    def get_sample(self, time_id: int) -> NumericArray:
         """
-        Read one element at an arbitrary time id, without advancing iteration.
+        Read one sample at an arbitrary time id, without advancing iteration.
 
         Parameters:
         ----------
@@ -290,11 +259,11 @@ class TimeSeriesIterator(ABC):
 
         Returns:
         -------
-        NumericArray: The element stored at `time_id`.
+        NumericArray: The sample stored at `time_id`.
 
         Raises:
         -------
-        ValueError: If the time id addresses no stored element.
+        ValueError: If the time id addresses no stored sample.
         """
 
     @abstractmethod
@@ -307,7 +276,7 @@ class TimeSeriesIterator(ABC):
 
     @property
     @abstractmethod
-    def media_type(self) -> MediaType:
+    def source_type(self) -> SourceType:
         pass
 
     @property
@@ -324,17 +293,17 @@ class TimeSeriesIterator(ABC):
     @classmethod
     def build(
         cls,
-        media_type: MediaType,
+        source_type: SourceType,
         paths: list[str],
         parameters: TimeSeriesIterationParameters | None = None
         ) -> TimeSeriesIterator:
         """
-        Build the time series iterator based on the media type.
+        Build the time series iterator based on the source type.
 
         Parameters:
         ----------
-        media_type: MediaType
-            The media type of the time series data.
+        source_type: SourceType
+            The source type of the time series data.
         paths: list[str]
             The paths to the time series data.
         parameters: TimeSeriesIterationParameters | None
@@ -346,25 +315,30 @@ class TimeSeriesIterator(ABC):
 
         Raises:
         ----------
-        ValueError: If the media type is not supported.
-        TypeError: If media_type is MediaType.VIDEO and parameters is not a VideoIterationParameters.
+        ValueError: If the source type is not supported, or a signal file's suffix is unknown.
+        TypeError: If source_type is SourceType.VIDEO and parameters is not a VideoIterationParameters.
         """
-        match media_type:
-            case MediaType.IMAGE:
+        match source_type:
+            case SourceType.IMAGE:
                 from .iterators.image import ImageIterator
                 if parameters is None:
                     parameters = TimeSeriesIterationParameters()
                 return ImageIterator(paths=paths, params=parameters)
-            case MediaType.VIDEO:
+            case SourceType.VIDEO:
                 from .iterators.video import VideoIterator
                 from .iterators.video.parameters import VideoIterationParameters
                 if parameters is None:
                     parameters = VideoIterationParameters()
                 elif not isinstance(parameters, VideoIterationParameters):
                     raise TypeError(
-                        "MediaType.VIDEO requires VideoIterationParameters, "
+                        "SourceType.VIDEO requires VideoIterationParameters, "
                         f"got {type(parameters).__name__}"
                         )
                 return VideoIterator(paths=paths, params=parameters)
+            case SourceType.SIGNAL:
+                from .iterators.signal import SignalIterator
+                if parameters is None:
+                    parameters = TimeSeriesIterationParameters()
+                return SignalIterator.from_paths(paths=paths, params=parameters)
             case _:
-                raise ValueError(f"Unsupported media type: {media_type}")
+                raise ValueError(f"Unsupported source type: {source_type}")

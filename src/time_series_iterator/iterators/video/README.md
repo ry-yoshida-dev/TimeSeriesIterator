@@ -10,7 +10,7 @@ for the selected `VideoBackend`, and every reader it returns implements
 backend is behind it. `VideoIterationParameters` extends the package's
 general `TimeSeriesIterationParameters` with the video-only settings
 (`video_backend`, `decode_device`, `start_video_file_index`), so
-`TimeSeriesIterationParameters` itself stays media-agnostic.
+`TimeSeriesIterationParameters` itself stays source-agnostic.
 
 ## Components
 
@@ -31,7 +31,7 @@ params = VideoIterationParameters(video_backend=VideoBackend.TORCHCODEC)
 iterator = VideoIterator(paths=["video.mp4"], params=params)
 ```
 
-`get_image(time_id)` reads one frame at random without disturbing iteration.
+`get_sample(time_id)` reads one frame at random without disturbing iteration.
 Each file's random-access reader is opened on first use and kept until
 `close()`, so repeated random access into a file pays the cost of opening it
 only once.

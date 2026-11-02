@@ -4,12 +4,12 @@ import cv2
 from types import TracebackType
 
 from id_manager import IDManager
-from ..iterator import TimeSeriesIterator
 from ..parameters import TimeSeriesIterationParameters
 from ..types import NumericArray
-from ..utils import MediaType
+from ..utils import SourceType
+from .file import FileTimeSeriesIterator
 
-class ImageIterator(TimeSeriesIterator):
+class ImageIterator(FileTimeSeriesIterator):
     """
     Iterator for image data.
 
@@ -80,10 +80,10 @@ class ImageIterator(TimeSeriesIterator):
         return len(self.paths)
 
     @property
-    def media_type(self) -> MediaType:
-        return MediaType.IMAGE
+    def source_type(self) -> SourceType:
+        return SourceType.IMAGE
 
-    def get_image(self, time_id: int) -> NumericArray:
+    def get_sample(self, time_id: int) -> NumericArray:
         """
         Read the image at an arbitrary time id, without advancing iteration.
 
@@ -101,7 +101,7 @@ class ImageIterator(TimeSeriesIterator):
         ValueError: If the time id addresses no stored image, or the image
             cannot be read.
         """
-        path = self.paths[self.media_index_of(time_id)]
+        path = self.paths[self.sample_index_of(time_id)]
         image = cv2.imread(path)
         if image is None:
             raise ValueError(f"Failed to load image from path: {path}")

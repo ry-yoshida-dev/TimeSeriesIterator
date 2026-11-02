@@ -1,7 +1,7 @@
 from .index_base import IndexBase
-from .media_type import MediaType
+from .source_type import SourceType
 
 __all__ = [
     "IndexBase",
-    "MediaType",
+    "SourceType",
 ]

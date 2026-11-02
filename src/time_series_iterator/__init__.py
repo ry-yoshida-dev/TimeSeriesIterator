@@ -1,15 +1,22 @@
 """
-Time series iterator module for handling image and video data iteration.
+Time series iterator module for handling image, video and numeric signal iteration.
 
-This module provides iterators for time series data including images and videos,
-with support for configurable parameters and different indexing schemes.
+This module provides iterators for time series data including images, videos and
+numeric signals, with support for configurable parameters and different indexing schemes.
 """
 
 from .iterator import TimeSeriesIterator
 from .parameters import TimeSeriesIterationParameters
-from .utils import IndexBase, MediaType
+from .utils import IndexBase, SourceType
 from .iterators import (
+    ArraySignalSource,
+    ConcatenatedSignalSource,
+    DelimitedTextSignalSource,
     ImageIterator,
+    NumpyFileSignalSource,
+    SignalFileFormat,
+    SignalIterator,
+    SignalSource,
     VideoBackend,
     VideoIterationParameters,
     VideoIterator,
@@ -18,10 +25,17 @@ from .iterators import (
 __all__ = [
     "TimeSeriesIterator",
     "TimeSeriesIterationParameters",
+    "ArraySignalSource",
+    "ConcatenatedSignalSource",
+    "DelimitedTextSignalSource",
     "IndexBase",
     "ImageIterator",
+    "NumpyFileSignalSource",
+    "SignalFileFormat",
+    "SignalIterator",
+    "SignalSource",
     "VideoBackend",
     "VideoIterationParameters",
     "VideoIterator",
-    "MediaType",
+    "SourceType",
 ]
