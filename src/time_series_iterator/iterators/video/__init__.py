@@ -8,9 +8,9 @@ from id_manager import IDManager
 from video_handler import VideoBackend, VideoFrame, VideoFrameReader, VideoReadParameters
 from .frame_location import VideoFrameLocation
 from .parameters import VideoIterationParameters
-from ...iterator import TimeSeriesIterator
 from ...types import NumericArray
-from ...utils import MediaType
+from ...utils import SourceType
+from ..file import FileTimeSeriesIterator
 
 __all__ = [
     "VideoBackend",
@@ -19,7 +19,7 @@ __all__ = [
     "VideoIterator",
 ]
 
-class VideoIterator(TimeSeriesIterator):
+class VideoIterator(FileTimeSeriesIterator):
     """
     Iterator for videos saved in a directory.
 
@@ -184,8 +184,8 @@ class VideoIterator(TimeSeriesIterator):
         return self.end_frame_id
 
     @property
-    def media_type(self) -> MediaType:
-        return MediaType.VIDEO
+    def source_type(self) -> SourceType:
+        return SourceType.VIDEO
 
     @property
     def end_frame_id(self) -> int:
@@ -225,7 +225,7 @@ class VideoIterator(TimeSeriesIterator):
             + f"max: {self.end_frame_id - 1}"
             )
 
-    def get_image(self, time_id: int) -> NumericArray:
+    def get_sample(self, time_id: int) -> NumericArray:
         """
         Read the frame at an arbitrary time id, without advancing iteration.
 
@@ -242,7 +242,7 @@ class VideoIterator(TimeSeriesIterator):
         ----------
         ValueError: If the time id addresses no stored frame.
         """
-        location = self._locate_frame(self.media_index_of(time_id))
+        location = self._locate_frame(self.sample_index_of(time_id))
         with self._reader_factory.build(self.paths[location.file_index]) as video_reader:
             return video_reader.read_frame_at(location.frame_index)
 

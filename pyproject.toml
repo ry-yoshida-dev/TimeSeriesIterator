@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
   { name = "Ryuto Yoshida" },
 ]
-description = "Iterators for time-series media data with configurable sampling and index base."
+description = "Iterators for time-series data with configurable sampling and index base."
 readme = "README.md"
 requires-python = ">=3.12"
 classifiers = [

@@ -10,7 +10,7 @@ for the selected `VideoBackend`, and every reader it returns implements
 backend is behind it. `VideoIterationParameters` extends the package's
 general `TimeSeriesIterationParameters` with the video-only settings
 (`video_backend`, `decode_device`, `start_video_file_index`), so
-`TimeSeriesIterationParameters` itself stays media-agnostic.
+`TimeSeriesIterationParameters` itself stays source-agnostic.
 
 ## Components
 

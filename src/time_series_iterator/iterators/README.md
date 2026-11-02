@@ -11,7 +11,9 @@ The iterators are designed to handle sequential data processing with configurabl
 
 | Component | Description |
 |-----------|-------------|
+| [file.py](file.py) | `FileTimeSeriesIterator`, the base of iterators reading from a list of files |
 | [image.py](image.py) | Program for iterating through multiple image files |
+| [signal/](signal/README.md) | Program for iterating numeric signals from arrays, files or a custom source |
 | [video/](video/README.md) | Program for iterating through multiple video files, over a choice of decode backends |
 
 ## Example Usage
@@ -63,15 +65,34 @@ with closing(iterator.with_progress_bar(description="frames")) as progress_itera
         if frame_id > 10:
             break
 
-frame = iterator.get_image(30)
+frame = iterator.get_sample(30)
 cv2.imwrite("output/frame_0030.jpg", frame)
+```
+
+### SignalIterator
+
+```python
+import numpy as np
+from time_series_iterator import (
+    ArraySignalSource,
+    SignalIterator,
+    TimeSeriesIterationParameters,
+)
+
+iterator = SignalIterator(
+    source=ArraySignalSource(np.sin(np.linspace(0, 10, 1000))),
+    params=TimeSeriesIterationParameters(sampling_freq=10),
+)
+
+for time_id, value in iterator:
+    pass
 ```
 
 ## Random Access
 
-`get_image(time_id)` reads one element without advancing iteration, and takes
-the same time id the loop yields, so `iterator.get_image(time_id)` returns what
+`get_sample(time_id)` reads one sample without advancing iteration, and takes
+the same time id the loop yields, so `iterator.get_sample(time_id)` returns what
 that step of the loop returned. `sampling_freq` does not restrict it: a time id
-the loop steps over still resolves, since it only skips stored elements rather
-than removing them. A time id outside the media, or off the pre-sampled grid
+the loop steps over still resolves, since it only skips stored samples rather
+than removing them. A time id outside the stored samples, or off the pre-sampled grid
 described in the [package README](../README.md), raises `ValueError`.

@@ -2,8 +2,8 @@
 
 ## Overview
 
-TimeSeriesIterator (`time_series_iterator`) is a Python package for iterating time-series media data (images and videos) with configurable sampling intervals.
-Use `TimeSeriesIterationParameters` to control start/end IDs, sampling frequency, and index base, then build an iterator from `MediaType`. `MediaType.VIDEO` requires `VideoIterationParameters`, a subclass adding video-only settings such as the decode backend.
+TimeSeriesIterator (`time_series_iterator`) is a Python package for iterating time-series data (images, videos and numeric signals) with configurable sampling intervals.
+Use `TimeSeriesIterationParameters` to control start/end IDs, sampling frequency, and index base, then build an iterator from `SourceType`. `SourceType.VIDEO` requires `VideoIterationParameters`, a subclass adding video-only settings such as the decode backend.
 
 For package-level details, see [src/time_series_iterator/README.md](src/time_series_iterator/README.md).
 
@@ -40,6 +40,13 @@ Video decoding goes through
 both backends. `torchcodec` loads the system FFmpeg (versions 4 to 9) at the
 first decode, so install FFmpeg before using `VideoBackend.TORCHCODEC`.
 
+## Numeric Signals
+
+`SignalIterator` iterates one-dimensional or multi-channel numeric data, whose
+first axis is time. Its data comes from a `SignalSource`, so arrays, tensors,
+files and custom storage all share the same iteration and sampling behavior.
+See [iterators/signal/](src/time_series_iterator/iterators/signal/README.md).
+
 ## Progress Bar
 
 `TimeSeriesIterator.with_progress_bar` wraps the iterator with
@@ -64,8 +71,8 @@ for time_id, frame in iterator.with_progress_bar(
 
 `total` defaults to `iterator.remaining_step_count`, the number of pairs the
 loop actually yields under `start_time_id`, `end_time_id` and the sampling
-frequencies. That differs from `len(iterator)`, which is the size of the
-underlying media. `is_enabled=False` silences the bar without changing the
+frequencies. That differs from `len(iterator)`, which is the number of
+stored samples. `is_enabled=False` silences the bar without changing the
 call site.
 
 Only `tqdm` is installed with this package, so `backend` selects it or one of
@@ -93,7 +100,7 @@ import glob
 import cv2
 from time_series_iterator import (
     IndexBase,
-    MediaType,
+    SourceType,
     TimeSeriesIterator,
     VideoIterationParameters,
 )
@@ -109,7 +116,7 @@ params = VideoIterationParameters(
 )
 
 iterator = TimeSeriesIterator.build(
-    media_type=MediaType.VIDEO,
+    source_type=SourceType.VIDEO,
     paths=paths,
     parameters=params,
 )
@@ -122,10 +129,10 @@ for time_id, frame in iterator:
     if time_id >= 20:
         break
 
-frame = iterator.get_image(30)
+frame = iterator.get_sample(30)
 cv2.imwrite("frame_0030.jpg", frame)
 
-with TimeSeriesIterator.build(MediaType.VIDEO, paths, params) as it:
+with TimeSeriesIterator.build(SourceType.VIDEO, paths, params) as it:
     for time_id, frame in it:
         if time_id >= 5:
             break
