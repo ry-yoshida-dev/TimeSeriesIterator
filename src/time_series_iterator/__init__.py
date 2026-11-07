@@ -6,8 +6,6 @@ numeric signals, with support for configurable parameters and different indexing
 """
 
 from .iterator import TimeSeriesIterator
-from .parameters import TimeSeriesIterationParameters
-from .utils import IndexBase, SourceType
 from .iterators import (
     ArraySignalSource,
     ConcatenatedSignalSource,
@@ -20,7 +18,9 @@ from .iterators import (
     VideoBackend,
     VideoIterationParameters,
     VideoIterator,
-    )
+)
+from .parameters import TimeSeriesIterationParameters
+from .utils import IndexBase, SourceType
 
 __all__ = [
     "TimeSeriesIterator",

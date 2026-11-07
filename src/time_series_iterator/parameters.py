@@ -2,17 +2,19 @@ from dataclasses import dataclass
 
 from .utils import IndexBase
 
+
 @dataclass
 class TimeSeriesIterationParameters:
     """
     Parameters for the time series iterator.
+
     * start_time_id and end_time_id are counted from the index_base.
     -> If index_base is IndexBase.One, start_time_id and end_time_id should be counted from 1.
     * One sample is stored per pre_sampled_freq time ids, so every emitted time id
       lies on the grid index_base, index_base + pre_sampled_freq, ...
       start_time_id must be on that grid; end_time_id is only an upper bound.
 
-    Parameters:
+    Parameters
     ----------
     pre_sampled_freq: int
         The sampling frequency of the pre-sampled time series data.
@@ -28,11 +30,12 @@ class TimeSeriesIterationParameters:
         The end time id of the time series data.
         * -1 indicates iteration until the last time.
 
-    Raises:
-    -------
+    Raises
+    ------
     ValueError: If start_time_id is below index_base or off the pre-sampled grid,
         or end_time_id is neither -1 nor a positive id not before start_time_id.
     """
+
     pre_sampled_freq: int = 1
     sampling_freq: int = 1
     raw_sampling_rate: float | int = 30
@@ -47,22 +50,22 @@ class TimeSeriesIterationParameters:
         if self.start_time_id < self.index_base.value:
             raise ValueError(
                 f"start_step_id must be greater than or equal to the index base ({self.index_base.value})"
-                )
+            )
         if (self.start_time_id - self.index_base.value) % self.pre_sampled_freq != 0:
             raise ValueError(
                 "start_time_id must fall on the pre-sampled grid: "
                 + f"(start_time_id - {self.index_base.value}) must be a multiple "
                 + f"of pre_sampled_freq ({self.pre_sampled_freq}), "
                 + f"given: {self.start_time_id}"
-                )
+            )
         if self.end_time_id <= 0 and self.end_time_id != -1:
             raise ValueError(
                 "end_time_id must be -1 (iterate until last time) or greater than 0"
-                )
+            )
         if self.end_time_id != -1 and self.end_time_id < self.start_time_id:
             raise ValueError(
                 "end_time_id must be -1 (iterate until last time) or greater than start_time_id"
-                )
+            )
 
     @property
     def offset_start_id(self) -> int:
@@ -73,8 +76,8 @@ class TimeSeriesIterationParameters:
         time ids, so the offset is ``start_time_id`` minus ``index_base``
         divided by ``pre_sampled_freq``.
 
-        Returns:
-        --------
+        Returns
+        -------
         int: Zero-based index into the underlying time series sequence.
         """
         return (self.start_time_id - self.index_base.value) // self.pre_sampled_freq
@@ -84,19 +87,19 @@ class TimeSeriesIterationParameters:
         """
         The sampling frequency of the actual time series data.
 
-        Returns:
-        --------
+        Returns
+        -------
         int: The sampling frequency of the actual time series data.
         """
-        return self.sampling_freq*self.pre_sampled_freq
+        return self.sampling_freq * self.pre_sampled_freq
 
     @property
     def is_set_end_time_id(self) -> bool:
         """
         Check if the end time id is set.
-        
-        Returns:
-        --------
+
+        Returns
+        -------
         bool: True if the end time id is set, False otherwise.
         """
         return self.end_time_id != -1
@@ -104,8 +107,8 @@ class TimeSeriesIterationParameters:
     def is_exceeded_end_time_id(self, time_id: int) -> bool:
         """
         Check if the time id is exceeded the end time id.
-        
-        Parameters:
+
+        Parameters
         ----------
         time_id: int
             The time id to check.

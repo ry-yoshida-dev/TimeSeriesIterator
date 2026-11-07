@@ -19,7 +19,9 @@ from torch_modules import Device
 
 from time_series_iterator import VideoBackend, VideoIterationParameters, VideoIterator
 
-params = VideoIterationParameters(video_backend=VideoBackend.TORCHCODEC, decode_device=Device.CPU)
+params = VideoIterationParameters(
+    video_backend=VideoBackend.TORCHCODEC, decode_device=Device.CPU
+)
 iterator = VideoIterator(paths=["video.mp4"], params=params)
 ```
 

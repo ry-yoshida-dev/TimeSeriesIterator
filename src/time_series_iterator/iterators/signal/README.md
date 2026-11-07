@@ -35,10 +35,12 @@ iterator = TimeSeriesIterator.build(SourceType.SIGNAL, ["day1.npy", "day2.npy"],
 iterator = SignalIterator(ArraySignalSource([1.0, 2.0, 3.0]), params)
 
 # Tables with options, joined over several files
-source = ConcatenatedSignalSource([
-    DelimitedTextSignalSource(path, is_header_present=True, columns=["x", "y"])
-    for path in ["day1.csv", "day2.csv"]
-])
+source = ConcatenatedSignalSource(
+    [
+        DelimitedTextSignalSource(path, is_header_present=True, columns=["x", "y"])
+        for path in ["day1.csv", "day2.csv"]
+    ]
+)
 iterator = SignalIterator(source, params)
 ```
 

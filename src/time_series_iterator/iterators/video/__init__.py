@@ -1,8 +1,8 @@
 from video_handler import VideoBackend
 
 from .frame_location import VideoFrameLocation
-from .parameters import VideoIterationParameters
 from .iterator import VideoIterator
+from .parameters import VideoIterationParameters
 
 __all__ = [
     "VideoBackend",

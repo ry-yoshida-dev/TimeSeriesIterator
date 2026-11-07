@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import override
 
+import numpy as np
 from id_manager import IDManager
-from video_handler import VideoFrame, VideoFrameReader, VideoReadParameters
-from .parameters import VideoIterationParameters
-from .frame_location import VideoFrameLocation
-from ..file import FileTimeSeriesIterator
+from video_handler import (
+    VideoFrame,
+    VideoFrameReader,
+    VideoReaderFactory,
+    VideoReadParameters,
+)
+
 from ...types import NumericArray
 from ...utils import SourceType
+from ..file import FileTimeSeriesIterator
+from .frame_location import VideoFrameLocation
+from .parameters import VideoIterationParameters
+
 
 class VideoIterator(FileTimeSeriesIterator):
     """
     Iterator for videos saved in a directory.
 
-    Attributes:
+    Attributes
     ----------
     file_id_manager: IDManager
         The manager for the file index of the video files.
@@ -28,45 +36,41 @@ class VideoIterator(FileTimeSeriesIterator):
         Readers serving `get_sample`, keyed by file index, opened on first use
         and kept open until `close`.
     """
-    def __init__(
-        self,
-        paths: list[str],
-        params: VideoIterationParameters
-        ) -> None:
+
+    def __init__(self, paths: list[str], params: VideoIterationParameters) -> None:
         """
         Initialize the VideoIterator.
 
-        Parameters:
+        Parameters
         ----------
         paths: list[str]
             The paths to the video files.
         params: VideoIterationParameters
             The parameters for the iteration of the time series data.
         """
-        super().__init__(
-            params=params,
-            paths=paths
-            )
+        super().__init__(params=params, paths=paths)
         self.params: VideoIterationParameters = params
         # manager for the file index of the video files.
-        self.file_id_manager = IDManager(
+        self.file_id_manager: IDManager = IDManager(
             current_id=self.params.start_video_file_index,
             step=1,
-            )
+        )
         # manager for the frame index of the video files.
-        self._reader_factory = self.params.reader_factory
+        self._reader_factory: VideoReaderFactory = self.params.reader_factory
         self.video_reader: VideoFrameReader[VideoFrame] | None = None
         self._random_access_readers: dict[int, VideoFrameReader[VideoFrame]] = {}
-        self.start_frame_index = self.params.offset_start_id
+        self.start_frame_index: int = self.params.offset_start_id
         self._end_frame_ids: list[int] = self._get_end_frame_ids()
-        self._cumulative_end_frame_ids: list[int] = [int(value) for value in np.cumsum(self._end_frame_ids)]
+        self._cumulative_end_frame_ids: list[int] = [
+            int(value) for value in np.cumsum(self._end_frame_ids)
+        ]
 
     def _get_end_frame_ids(self) -> list[int]:
         """
         Get the end frame ids of the video files to access the each frame of the video files.
 
-        Returns:
-        ----------
+        Returns
+        -------
         list[int]: The end frame ids of the video files.
         """
         end_frame_ids: list[int] = []
@@ -79,8 +83,8 @@ class VideoIterator(FileTimeSeriesIterator):
         """
         Replace the current video reader with one for the next video file.
 
-        Returns:
-        ----------
+        Returns
+        -------
         bool: Whether a video file remained to open.
         """
         file_index = self.file_id_manager.next_id
@@ -95,23 +99,24 @@ class VideoIterator(FileTimeSeriesIterator):
             VideoReadParameters(
                 start_frame=self.start_frame_index,
                 frame_step=self.params.sampling_freq,
-                ),
-            )
+            ),
+        )
 
         # update the start index of the video reader to ensure that the reading the frame of next video file is correct.
         self._update_start_index()
         return True
 
+    @override
     def _next_data(self) -> NumericArray | None:
         """
         Get the next data from the video iterator.
 
-        Returns:
-        ----------
+        Returns
+        -------
         NumericArray | None: The next data from the video iterator.
 
-        Raises:
-        ----------
+        Raises
+        ------
         StopIteration: If the end of the video is reached.
         """
         while True:
@@ -124,6 +129,7 @@ class VideoIterator(FileTimeSeriesIterator):
             if frame is not None:
                 return frame
 
+    @override
     def _skip_data(self) -> bool:
         """
         Advance one frame without decoding it.
@@ -131,8 +137,8 @@ class VideoIterator(FileTimeSeriesIterator):
         Mirrors `_next_data`'s file-rollover loop exactly, but asks the reader
         to skip the frame instead of decoding it.
 
-        Returns:
-        ----------
+        Returns
+        -------
         bool: Whether a frame remained to skip.
         """
         while True:
@@ -153,9 +159,14 @@ class VideoIterator(FileTimeSeriesIterator):
         """
         if self.video_reader is None:
             return
-        remaining = (self.video_reader.metadata.frame_count - self.start_frame_index) % self.params.sampling_freq
-        self.start_frame_index = (self.params.sampling_freq - remaining) % self.params.sampling_freq
+        remaining = (
+            self.video_reader.metadata.frame_count - self.start_frame_index
+        ) % self.params.sampling_freq
+        self.start_frame_index = (
+            self.params.sampling_freq - remaining
+        ) % self.params.sampling_freq
 
+    @override
     def close(self) -> None:
         """Release the sequential reader and every cached random-access reader."""
         if self.video_reader is not None:
@@ -168,36 +179,42 @@ class VideoIterator(FileTimeSeriesIterator):
     def __del__(self) -> None:
         self.close()
 
+    @override
     def __len__(self) -> int:
         return self.end_frame_id
 
     @property
+    @override
     def source_type(self) -> SourceType:
         return SourceType.VIDEO
 
     @property
     def end_frame_id(self) -> int:
+        """Total number of frames across all video files of the scene."""
         return self._cumulative_end_frame_ids[-1]
 
     @property
+    @override
     def end_time_id(self) -> int:
-        return (self.end_frame_id - 1)*self.params.pre_sampled_freq + self.params.index_base.value
+        return (
+            self.end_frame_id - 1
+        ) * self.params.pre_sampled_freq + self.params.index_base.value
 
     def _locate_frame(self, frame_index: int) -> VideoFrameLocation:
         """
         Resolve a frame index spanning every video file into one file's frame.
 
-        Parameters:
+        Parameters
         ----------
         frame_index: int
             Zero-based index counted across the video files in order.
 
-        Returns:
-        ----------
+        Returns
+        -------
         VideoFrameLocation: The file holding the frame, and its index there.
 
-        Raises:
-        ----------
+        Raises
+        ------
         ValueError: If the index lies past the last frame of the last file.
         """
         previous_end_frame_id = 0
@@ -206,14 +223,16 @@ class VideoIterator(FileTimeSeriesIterator):
                 return VideoFrameLocation(
                     file_index=file_index,
                     frame_index=frame_index - previous_end_frame_id,
-                    )
+                )
             previous_end_frame_id = end_frame_id
         raise ValueError(
             f"Frame index is out of range, given: {frame_index}, "
             + f"max: {self.end_frame_id - 1}"
-            )
+        )
 
-    def _random_access_reader_for(self, file_index: int) -> VideoFrameReader[VideoFrame]:
+    def _random_access_reader_for(
+        self, file_index: int
+    ) -> VideoFrameReader[VideoFrame]:
         """
         Return the reader serving random access into one video file.
 
@@ -222,13 +241,13 @@ class VideoIterator(FileTimeSeriesIterator):
         `close`. It is separate from the iteration reader, so random access
         never disturbs iteration.
 
-        Parameters:
+        Parameters
         ----------
         file_index: int
             Index into `paths` of the file to read.
 
-        Returns:
-        ----------
+        Returns
+        -------
         VideoFrameReader[VideoFrame]: The file's random-access reader.
         """
         random_access_reader = self._random_access_readers.get(file_index)
@@ -237,6 +256,7 @@ class VideoIterator(FileTimeSeriesIterator):
             self._random_access_readers[file_index] = random_access_reader
         return random_access_reader
 
+    @override
     def get_sample(self, time_id: int) -> NumericArray:
         """
         Read the frame at an arbitrary time id, without advancing iteration.
@@ -244,25 +264,29 @@ class VideoIterator(FileTimeSeriesIterator):
         The file's reader stays open after the read, so repeated random access
         into the same file pays the cost of opening it only once.
 
-        Parameters:
+        Parameters
         ----------
         time_id: int
             A time id as yielded by `__next__`.
 
-        Returns:
-        ----------
+        Returns
+        -------
         NumericArray: The frame stored at `time_id`.
 
-        Raises:
-        ----------
+        Raises
+        ------
         ValueError: If the time id addresses no stored frame.
         """
         location = self._locate_frame(self.sample_index_of(time_id))
-        return self._random_access_reader_for(location.file_index).read_frame_at(location.frame_index)
+        return self._random_access_reader_for(location.file_index).read_frame_at(
+            location.frame_index
+        )
 
+    @override
     def __str__(self) -> str:
         return f"VideoIterator(paths[0]={self.paths[0]}, params={self.params})"
 
     @property
     def fps(self) -> float:
+        """Frame rate of the videos, from ``raw_sampling_rate``."""
         return self.params.raw_sampling_rate

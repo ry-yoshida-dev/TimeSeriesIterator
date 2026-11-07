@@ -6,11 +6,12 @@ from pathlib import Path
 from .source import SignalSource
 from .sources import DelimitedTextSignalSource, NumpyFileSignalSource
 
+
 class SignalFileFormat(Enum):
     """
     Signal file formats recognized from a file suffix.
 
-    Attributes:
+    Attributes
     ----------
     NPY: NumPy array file.
     NPZ: NumPy archive holding a single array.
@@ -18,6 +19,7 @@ class SignalFileFormat(Enum):
     TSV: Tab-separated table without a header.
     TXT: Whitespace-separated table without a header.
     """
+
     NPY = ".npy"
     NPZ = ".npz"
     CSV = ".csv"
@@ -29,35 +31,37 @@ class SignalFileFormat(Enum):
         """
         Recognize the format of a file from its suffix, ignoring case.
 
-        Parameters:
+        Parameters
         ----------
         path: str
             The path to the file.
 
-        Returns:
+        Returns
         -------
         SignalFileFormat: The format.
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError: If the suffix is not recognized.
         """
         suffix = Path(path).suffix.lower()
         supported_suffixes = {file_format.value for file_format in cls}
         if suffix not in supported_suffixes:
-            raise ValueError(f"Unsupported signal file: {path}, supported: {sorted(supported_suffixes)}")
+            raise ValueError(
+                f"Unsupported signal file: {path}, supported: {sorted(supported_suffixes)}"
+            )
         return cls(suffix)
 
     def open(self, path: str) -> SignalSource:
         """
         Open a file of this format with the format's default options.
 
-        Parameters:
+        Parameters
         ----------
         path: str
             The path to the file.
 
-        Returns:
+        Returns
         -------
         SignalSource: The source reading the file.
         """

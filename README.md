@@ -25,7 +25,12 @@ Videos are decoded by [VideoHandler](https://github.com/ry-yoshida-dev/VideoHand
 ```python
 import glob
 
-from time_series_iterator import IndexBase, SourceType, TimeSeriesIterator, VideoIterationParameters
+from time_series_iterator import (
+    IndexBase,
+    SourceType,
+    TimeSeriesIterator,
+    VideoIterationParameters,
+)
 
 params = VideoIterationParameters(
     sampling_freq=5,
@@ -33,7 +38,9 @@ params = VideoIterationParameters(
     index_base=IndexBase.ONE,
 )
 
-with TimeSeriesIterator.build(SourceType.VIDEO, sorted(glob.glob("videos/*.mp4")), params) as iterator:
+with TimeSeriesIterator.build(
+    SourceType.VIDEO, sorted(glob.glob("videos/*.mp4")), params
+) as iterator:
     for time_id, frame in iterator.with_progress_bar(description="frames"):
         if time_id >= 20:
             break

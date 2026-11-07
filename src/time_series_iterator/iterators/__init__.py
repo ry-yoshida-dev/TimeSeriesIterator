@@ -7,7 +7,7 @@ from .signal import (
     SignalFileFormat,
     SignalIterator,
     SignalSource,
-    )
+)
 from .video import VideoBackend, VideoIterationParameters, VideoIterator
 
 __all__ = [

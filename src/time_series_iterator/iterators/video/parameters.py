@@ -5,12 +5,13 @@ from video_handler import TorchCodecReadOptions, VideoBackend, VideoReaderFactor
 
 from ...parameters import TimeSeriesIterationParameters
 
+
 @dataclass
 class VideoIterationParameters(TimeSeriesIterationParameters):
     """
     Parameters for iterating videos with a `VideoIterator`.
 
-    Parameters:
+    Parameters
     ----------
     video_backend: VideoBackend
         The backend a VideoIterator reads frames with. `VideoBackend.OPENCV`
@@ -24,6 +25,7 @@ class VideoIterationParameters(TimeSeriesIterationParameters):
     start_video_file_index: int
         The starting index into a scene's video files.
     """
+
     video_backend: VideoBackend = VideoBackend.OPENCV
     decode_device: Device = field(default_factory=Device.detect)
     start_video_file_index: int = 0
@@ -33,12 +35,12 @@ class VideoIterationParameters(TimeSeriesIterationParameters):
         """
         Factory building the frame readers these parameters describe.
 
-        Returns:
-        --------
+        Returns
+        -------
         VideoReaderFactory: Factory for `video_backend`, decoding on
             `decode_device` when the backend is `VideoBackend.TORCHCODEC`.
         """
         return VideoReaderFactory(
             backend=self.video_backend,
             torchcodec_options=TorchCodecReadOptions(device=self.decode_device),
-            )
+        )

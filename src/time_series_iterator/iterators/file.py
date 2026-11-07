@@ -1,26 +1,25 @@
 import os
+from abc import ABC
 
 from ..iterator import TimeSeriesIterator
 from ..parameters import TimeSeriesIterationParameters
 
-class FileTimeSeriesIterator(TimeSeriesIterator):
+
+class FileTimeSeriesIterator(TimeSeriesIterator, ABC):
     """
     Base class for iterators reading their samples from a list of files.
 
-    Attributes:
+    Attributes
     ----------
     paths: list[str]
         The paths to the time series data.
     """
-    def __init__(
-        self,
-        params: TimeSeriesIterationParameters,
-        paths: list[str]
-        ):
+
+    def __init__(self, params: TimeSeriesIterationParameters, paths: list[str]):
         """
         Initialize the FileTimeSeriesIterator.
 
-        Parameters:
+        Parameters
         ----------
         params: TimeSeriesIterationParameters
             The parameters for the time series iterator.
@@ -29,22 +28,19 @@ class FileTimeSeriesIterator(TimeSeriesIterator):
         """
         super().__init__(params=params)
         self._validate_paths(paths)
-        self.paths = paths
+        self.paths: list[str] = paths
 
-    def _validate_paths(
-        self,
-        paths: list[str]
-        ) -> None:
+    def _validate_paths(self, paths: list[str]) -> None:
         """
         Validate the paths.
 
-        Parameters:
+        Parameters
         ----------
         paths: list[str]
             The paths to the time series data.
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError: If the paths is empty.
         FileNotFoundError: If the file is not found.
         """

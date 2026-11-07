@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterator
 from types import TracebackType
 from typing import Self
+
 from id_manager import IDManager
 from progress_bar import ProgressBarBackend, ProgressBarReporter
 
@@ -11,36 +12,37 @@ from .parameters import TimeSeriesIterationParameters
 from .types import NumericArray
 from .utils import SourceType
 
+
 class TimeSeriesIterator(ABC):
     """
     Base class for time series data iterator.
 
-    Attributes:
+    Attributes
     ----------
     params: TimeSeriesIterationParameters
         The parameters for the time series iterator.
     time_id_manager: IDManager
         The manager for the time id.
     """
+
     def __init__(
         self,
         params: TimeSeriesIterationParameters,
-        ):
+    ):
         """
         Initialize the TimeSeriesIterator.
 
-        Parameters:
+        Parameters
         ----------
         params: TimeSeriesIterationParameters
             The parameters for the time series iterator.
         """
-
         self.params = params
 
-        self.time_id_manager = IDManager(
+        self.time_id_manager: IDManager = IDManager(
             current_id=self.params.start_time_id,
             step=self.params.sampling_freq * self.params.pre_sampled_freq,
-            )
+        )
 
     def __iter__(self) -> Iterator[tuple[int, NumericArray]]:
         return self
@@ -49,15 +51,15 @@ class TimeSeriesIterator(ABC):
         """
         Get the next data from the time series iterator.
 
-        Returns:
+        Returns
         -------
         tuple[int, NumericArray]
             The next data from the time series iterator.
             int: The frame id of the next data.
             NumericArray: The next data.
 
-        Raises:
-        -------
+        Raises
+        ------
         StopIteration: If the end of the time series data is reached.
         """
         data = self._next_data()
@@ -76,12 +78,12 @@ class TimeSeriesIterator(ABC):
         instead of `next()` and still see the same end-of-stream behavior --
         the id bookkeeping is identical to `__next__`.
 
-        Returns:
+        Returns
         -------
         int: The time id of the step just skipped.
 
-        Raises:
-        -------
+        Raises
+        ------
         StopIteration: If the end of the time series data is reached.
         """
         if not self._skip_data():
@@ -93,15 +95,15 @@ class TimeSeriesIterator(ABC):
         """
         Resolve and record the time id the step just taken corresponds to.
 
-        Returns:
+        Returns
         -------
         int: The time id.
 
-        Raises:
-        -------
+        Raises
+        ------
         StopIteration: If the time id lies past the configured end.
         """
-        self.time_id = self.time_id_manager.next_id
+        self.time_id: int = self.time_id_manager.next_id
 
         if self.params.is_exceeded_end_time_id(self.time_id):
             raise StopIteration
@@ -116,7 +118,7 @@ class TimeSeriesIterator(ABC):
         base class has no backend-specific cheaper path; a subclass whose
         backend can skip more cheaply overrides this.
 
-        Returns:
+        Returns
         -------
         bool: Whether a step remained to skip.
         """
@@ -132,7 +134,7 @@ class TimeSeriesIterator(ABC):
         `len(self)` is the number of stored samples instead, and ignores
         `start_time_id`, `end_time_id` and the sampling frequencies.
 
-        Returns:
+        Returns
         -------
         int: The number of steps left, or 0 once the iterator is exhausted.
         """
@@ -155,7 +157,7 @@ class TimeSeriesIterator(ABC):
         is_leave_visible: bool = True,
         backend: ProgressBarBackend | None = None,
         is_enabled: bool = True,
-        ) -> Generator[tuple[int, NumericArray], None, None]:
+    ) -> Generator[tuple[int, NumericArray], None, None]:
         """
         Wrap this iterator with a progress bar for use in a for loop.
 
@@ -163,7 +165,7 @@ class TimeSeriesIterator(ABC):
         back to a dependency-free text bar when no progress bar library is
         installed or the output is redirected.
 
-        Parameters:
+        Parameters
         ----------
         total: int | None
             Bar length. Defaults to `remaining_step_count`, which is the
@@ -179,12 +181,12 @@ class TimeSeriesIterator(ABC):
         is_enabled: bool
             Whether the bar is displayed at all.
 
-        Returns:
+        Returns
         -------
         Generator[tuple[int, NumericArray], None, None]: The pairs yielded by
             this iterator, unchanged, with the bar advanced once per pair.
 
-        Notes:
+        Notes
         -----
         The bar is finalized once the returned iterator is exhausted or
         closed. A loop that breaks early while a reference to the iterator
@@ -206,7 +208,7 @@ class TimeSeriesIterator(ABC):
             is_leave_visible=is_leave_visible,
             backend=backend,
             is_enabled=is_enabled,
-            )
+        )
 
         return reporter.report(self)
 
@@ -220,17 +222,17 @@ class TimeSeriesIterator(ABC):
         property of the stored data, so an id this iterator's loop skips still
         converts.
 
-        Parameters:
+        Parameters
         ----------
         time_id: int
             A time id as yielded by `__next__`.
 
-        Returns:
+        Returns
         -------
         int: Zero-based index into the stored samples.
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError: If the time id is outside the stored samples or off the
             pre-sampled grid.
         """
@@ -239,14 +241,14 @@ class TimeSeriesIterator(ABC):
             raise ValueError(
                 f"time_id must be between {self.params.index_base.value} "
                 + f"and {self.end_time_id}, given: {time_id}"
-                )
+            )
         if offset % self.params.pre_sampled_freq != 0:
             raise ValueError(
                 "time_id must fall on the pre-sampled grid: "
                 + f"(time_id - {self.params.index_base.value}) must be a multiple "
                 + f"of pre_sampled_freq ({self.params.pre_sampled_freq}), "
                 + f"given: {time_id}"
-                )
+            )
         return offset // self.params.pre_sampled_freq
 
     @abstractmethod
@@ -257,17 +259,17 @@ class TimeSeriesIterator(ABC):
         `sampling_freq` does not restrict it: a time id the loop steps over
         still resolves, since sampling only skips stored samples.
 
-        Parameters:
+        Parameters
         ----------
         time_id: int
             A time id as yielded by `__next__`.
 
-        Returns:
+        Returns
         -------
         NumericArray: The sample stored at `time_id`.
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError: If the time id addresses no stored sample or lies off the
             pre-sampled grid.
         """
@@ -298,7 +300,7 @@ class TimeSeriesIterator(ABC):
     @property
     @abstractmethod
     def source_type(self) -> SourceType:
-        pass
+        """Kind of data this iterator reads."""
 
     @property
     @abstractmethod
@@ -306,7 +308,7 @@ class TimeSeriesIterator(ABC):
         """
         Get the end time id of the time series iterator.
 
-        Returns:
+        Returns
         -------
         int: The end time id of the time series iterator.
         """
@@ -316,12 +318,12 @@ class TimeSeriesIterator(ABC):
         cls,
         source_type: SourceType,
         paths: list[str],
-        parameters: TimeSeriesIterationParameters | None = None
-        ) -> TimeSeriesIterator:
+        parameters: TimeSeriesIterationParameters | None = None,
+    ) -> TimeSeriesIterator:
         """
         Build the time series iterator based on the source type.
 
-        Parameters:
+        Parameters
         ----------
         source_type: SourceType
             The source type of the time series data.
@@ -330,36 +332,37 @@ class TimeSeriesIterator(ABC):
         parameters: TimeSeriesIterationParameters | None
             The parameters for the time series iterator.
 
-        Returns:
-        ----------
+        Returns
+        -------
         TimeSeriesIterator: The time series iterator.
 
-        Raises:
-        ----------
-        ValueError: If the source type is not supported, or a signal file's suffix is unknown.
+        Raises
+        ------
+        ValueError: If a signal file's suffix is unknown.
         TypeError: If source_type is SourceType.VIDEO and parameters is not a VideoIterationParameters.
         """
         match source_type:
             case SourceType.IMAGE:
                 from .iterators.image import ImageIterator
+
                 if parameters is None:
                     parameters = TimeSeriesIterationParameters()
                 return ImageIterator(paths=paths, params=parameters)
             case SourceType.VIDEO:
                 from .iterators.video import VideoIterator
                 from .iterators.video.parameters import VideoIterationParameters
+
                 if parameters is None:
                     parameters = VideoIterationParameters()
                 elif not isinstance(parameters, VideoIterationParameters):
                     raise TypeError(
                         "SourceType.VIDEO requires VideoIterationParameters, "
-                        f"got {type(parameters).__name__}"
-                        )
+                        + f"got {type(parameters).__name__}"
+                    )
                 return VideoIterator(paths=paths, params=parameters)
             case SourceType.SIGNAL:
                 from .iterators.signal import SignalIterator
+
                 if parameters is None:
                     parameters = TimeSeriesIterationParameters()
                 return SignalIterator.from_paths(paths=paths, params=parameters)
-            case _:
-                raise ValueError(f"Unsupported source type: {source_type}")
