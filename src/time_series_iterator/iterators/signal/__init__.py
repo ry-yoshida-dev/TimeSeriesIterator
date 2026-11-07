@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from types import TracebackType
 
 from id_manager import IDManager
 
@@ -147,18 +146,7 @@ class SignalIterator(TimeSeriesIterator):
         return self.source.read(self.sample_index_of(time_id))
 
     def close(self) -> None:
-        pass
-
-    def __enter__(self) -> SignalIterator:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        self.close()
+        """Release resources. The signal source holds no open handles, so there is nothing to release."""
 
     def __len__(self) -> int:
         return len(self.source)

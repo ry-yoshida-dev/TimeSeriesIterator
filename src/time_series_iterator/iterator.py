@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterator
+from types import TracebackType
+from typing import Self
 from id_manager import IDManager
 from progress_bar import ProgressBarBackend, ProgressBarReporter
 
@@ -269,6 +271,21 @@ class TimeSeriesIterator(ABC):
         ValueError: If the time id addresses no stored sample or lies off the
             pre-sampled grid.
         """
+
+    @abstractmethod
+    def close(self) -> None:
+        """Release the resources held by the iterator."""
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.close()
 
     @abstractmethod
     def _next_data(self) -> NumericArray | None:

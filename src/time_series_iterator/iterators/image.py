@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import cv2
-from types import TracebackType
 
 from id_manager import IDManager
 from ..parameters import TimeSeriesIterationParameters
@@ -60,20 +59,9 @@ class ImageIterator(FileTimeSeriesIterator):
         return index < len(self.paths)
 
     def close(self) -> None:
-        pass
+        """Release resources. Image files are opened per read, so there is nothing to release."""
 
     def __del__(self) -> None:
-        self.close()
-
-    def __enter__(self) -> ImageIterator:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
         self.close()
 
     def __len__(self) -> int:

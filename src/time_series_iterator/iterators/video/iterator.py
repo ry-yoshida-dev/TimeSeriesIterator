@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-from types import TracebackType
 
 from id_manager import IDManager
 from video_handler import VideoFrame, VideoFrameReader, VideoReadParameters
@@ -158,6 +157,7 @@ class VideoIterator(FileTimeSeriesIterator):
         self.start_frame_index = (self.params.sampling_freq - remaining) % self.params.sampling_freq
 
     def close(self) -> None:
+        """Release the sequential reader and every cached random-access reader."""
         if self.video_reader is not None:
             self.video_reader.release()
             self.video_reader = None
@@ -166,17 +166,6 @@ class VideoIterator(FileTimeSeriesIterator):
         self._random_access_readers.clear()
 
     def __del__(self) -> None:
-        self.close()
-
-    def __enter__(self) -> VideoIterator:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
         self.close()
 
     def __len__(self) -> int:
