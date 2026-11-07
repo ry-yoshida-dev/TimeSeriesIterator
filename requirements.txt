@@ -1,7 +1,6 @@
 numpy
 opencv-contrib-python
 torch
-torchcodec
 id-manager @ git+https://github.com/ry-yoshida-dev/IDManager.git
 video-handler @ git+https://github.com/ry-yoshida-dev/VideoHandler.git
 progress-bar[tqdm] @ git+https://github.com/ry-yoshida-dev/ProgressBar.git

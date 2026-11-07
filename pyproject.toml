@@ -21,7 +21,6 @@ dependencies = [
     "video-handler @ git+https://github.com/ry-yoshida-dev/VideoHandler.git",
     "progress-bar[tqdm] @ git+https://github.com/ry-yoshida-dev/ProgressBar.git",
     "torch_modules @ git+https://github.com/ry-yoshida-dev/TorchModules.git",
-    "torchcodec",
     "numpy",
     "opencv-contrib-python",
     "torch",
@@ -34,11 +33,6 @@ Homepage = "https://github.com/ry-yoshida-dev/TimeSeriesIterator"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.uv.sources]
-torchcodec = [
-    { path = "wheels/torchcodec-0.16.0a0+7861421-cp314-cp314-linux_x86_64.whl", marker = "sys_platform == 'linux'" },
-]
 
 [tool.uv]
 exclude-newer = "7 days"

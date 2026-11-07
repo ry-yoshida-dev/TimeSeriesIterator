@@ -18,7 +18,7 @@ See [src/time_series_iterator/iterators/](src/time_series_iterator/iterators/REA
 pip install .
 ```
 
-`torchcodec` resolves to the CUDA-enabled wheel under `wheels/` on Linux x86_64 with Python 3.14, and to the published CPU release elsewhere. It loads the system FFmpeg (versions 4 to 9), so install FFmpeg before using `VideoBackend.TORCHCODEC`.
+Videos are decoded by [VideoHandler](https://github.com/ry-yoshida-dev/VideoHandler), which installs torchcodec. `VideoBackend.TORCHCODEC` needs the system FFmpeg (versions 4 to 9), and decodes on a CUDA GPU when the CUDA build of torchcodec is installed, as VideoHandler's README describes.
 
 ## Usage
 
