@@ -31,6 +31,10 @@ class SignalIterator(TimeSeriesIterator):
     """
     Iterator for numeric signals, reading each sample from a `SignalSource`.
 
+    The first axis of the signal is time, and samples are assumed evenly spaced.
+    A single-channel signal yields zero-dimensional samples, and a
+    `(time, channels)` signal yields `(channels,)` ones.
+
     Attributes:
     ----------
     source: SignalSource

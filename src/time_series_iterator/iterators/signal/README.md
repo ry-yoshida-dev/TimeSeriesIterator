@@ -2,11 +2,7 @@
 
 ## Overview
 
-`SignalIterator` iterates numeric signals, one- or multi-dimensional, whose
-first axis is time. It only handles time ids and sampling, and reads every
-sample through a `SignalSource`, so a new storage format needs a new source
-rather than a new iterator. Time ids assume evenly spaced samples, so irregular
-timestamps are out of scope.
+`SignalIterator` iterates numeric signals whose first axis is time, reading every sample through a `SignalSource`, so a new storage format needs only a new source.
 
 ## Components
 
@@ -17,7 +13,7 @@ timestamps are out of scope.
 | [file_format.py](./file_format.py) | `SignalFileFormat`, opening a file from its suffix with default options |
 | [sources/](./sources/README.md) | Concrete sources for arrays, NumPy files, text tables and concatenation |
 
-## Example
+## Examples
 
 ```python
 from time_series_iterator import (
@@ -44,18 +40,9 @@ source = ConcatenatedSignalSource([
     for path in ["day1.csv", "day2.csv"]
 ])
 iterator = SignalIterator(source, params)
-
-for time_id, sample in iterator:
-    pass
 ```
 
-A single-channel signal yields zero-dimensional arrays or tensors, and a
-`(time, channels)` signal yields `(channels,)` ones.
-
-## Custom Sources
-
-Subclass `SignalSource` for any other storage. Only the sample count and a read
-by index are required:
+Any other storage needs only the sample count and a read by index:
 
 ```python
 import h5py

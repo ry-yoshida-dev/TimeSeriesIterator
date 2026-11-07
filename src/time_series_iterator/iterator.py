@@ -252,6 +252,9 @@ class TimeSeriesIterator(ABC):
         """
         Read one sample at an arbitrary time id, without advancing iteration.
 
+        `sampling_freq` does not restrict it: a time id the loop steps over
+        still resolves, since sampling only skips stored samples.
+
         Parameters:
         ----------
         time_id: int
@@ -263,7 +266,8 @@ class TimeSeriesIterator(ABC):
 
         Raises:
         -------
-        ValueError: If the time id addresses no stored sample.
+        ValueError: If the time id addresses no stored sample or lies off the
+            pre-sampled grid.
         """
 
     @abstractmethod
