@@ -13,11 +13,14 @@ class VideoIterationParameters(TimeSeriesIterationParameters):
     Parameters:
     ----------
     video_backend: VideoBackend
-        The backend a VideoIterator reads frames with.
+        The backend a VideoIterator reads frames with. `VideoBackend.OPENCV`
+        yields BGR `(H, W, 3)` NumPy frames; `VideoBackend.TORCHCODEC` yields RGB
+        `(3, H, W)` tensors on the decode device.
     decode_device: Device
         Device the decode runs on, defaulting to the best one this machine has.
         Only `VideoBackend.TORCHCODEC` reads this; `VideoBackend.OPENCV` always
-        decodes on the CPU.
+        decodes on the CPU. A device this machine cannot decode on resolves to
+        `Device.CPU` with a warning.
     start_video_file_index: int
         The starting index into a scene's video files.
     """

@@ -8,6 +8,9 @@ class TimeSeriesIterationParameters:
     Parameters for the time series iterator.
     * start_time_id and end_time_id are counted from the index_base.
     -> If index_base is IndexBase.One, start_time_id and end_time_id should be counted from 1.
+    * One sample is stored per pre_sampled_freq time ids, so every emitted time id
+      lies on the grid index_base, index_base + pre_sampled_freq, ...
+      start_time_id must be on that grid; end_time_id is only an upper bound.
 
     Parameters:
     ----------
@@ -24,6 +27,11 @@ class TimeSeriesIterationParameters:
     end_time_id: int
         The end time id of the time series data.
         * -1 indicates iteration until the last time.
+
+    Raises:
+    -------
+    ValueError: If start_time_id is below index_base or off the pre-sampled grid,
+        or end_time_id is neither -1 nor a positive id not before start_time_id.
     """
     pre_sampled_freq: int = 1
     sampling_freq: int = 1
