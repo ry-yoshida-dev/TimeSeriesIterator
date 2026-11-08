@@ -66,8 +66,3 @@ convention = "numpy"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
 
-[tool.basedpyright]
-# TimeSeriesIterator.build resolves each SourceType to its iterator through
-# deferred imports, which pyright reports as cycles. Breaking them needs a
-# redesign of that public API.
-reportImportCycles = false

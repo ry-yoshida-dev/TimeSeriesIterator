@@ -2,7 +2,7 @@
 
 ## Overview
 
-Concrete `TimeSeriesIterator` implementations, one per source type.
+Concrete `TimeSeriesIterator` implementations, one per source type. Each names its source type in its class statement, which registers it for `TimeSeriesIterator.build`.
 
 ## Components
 

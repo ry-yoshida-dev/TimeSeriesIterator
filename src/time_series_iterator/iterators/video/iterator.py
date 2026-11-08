@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import override
+from typing import Self, override
 
 import numpy as np
 from id_manager import IDManager
@@ -11,6 +11,7 @@ from video_handler import (
     VideoReadParameters,
 )
 
+from ...parameters import TimeSeriesIterationParameters
 from ...types import NumericArray
 from ...utils import SourceType
 from ..file import FileTimeSeriesIterator
@@ -18,7 +19,7 @@ from .frame_location import VideoFrameLocation
 from .parameters import VideoIterationParameters
 
 
-class VideoIterator(FileTimeSeriesIterator):
+class VideoIterator(FileTimeSeriesIterator, source_type=SourceType.VIDEO):
     """
     Iterator for videos saved in a directory.
 
@@ -48,8 +49,8 @@ class VideoIterator(FileTimeSeriesIterator):
         params: VideoIterationParameters
             The parameters for the iteration of the time series data.
         """
+        self._video_params: VideoIterationParameters = params
         super().__init__(params=params, paths=paths)
-        self.params: VideoIterationParameters = params
         # manager for the file index of the video files.
         self.file_id_manager: IDManager = IDManager(
             current_id=self.params.start_video_file_index,
@@ -185,8 +186,44 @@ class VideoIterator(FileTimeSeriesIterator):
 
     @property
     @override
-    def source_type(self) -> SourceType:
-        return SourceType.VIDEO
+    def params(self) -> VideoIterationParameters:
+        """The parameters for the iteration of the video files."""
+        return self._video_params
+
+    @classmethod
+    @override
+    def from_paths(
+        cls,
+        paths: list[str],
+        params: TimeSeriesIterationParameters | None = None,
+    ) -> Self:
+        """
+        Build an iterator reading the video files of one scene, in order.
+
+        Parameters
+        ----------
+        paths: list[str]
+            The paths to the video files.
+        params: TimeSeriesIterationParameters | None
+            The parameters, which must be a `VideoIterationParameters`, or None
+            for the defaults.
+
+        Returns
+        -------
+        Self: The iterator.
+
+        Raises
+        ------
+        TypeError: If params is not a VideoIterationParameters.
+        """
+        if params is None:
+            return cls(paths=paths, params=VideoIterationParameters())
+        if not isinstance(params, VideoIterationParameters):
+            raise TypeError(
+                "SourceType.VIDEO requires VideoIterationParameters, "
+                + f"got {type(params).__name__}"
+            )
+        return cls(paths=paths, params=params)
 
     @property
     def end_frame_id(self) -> int:

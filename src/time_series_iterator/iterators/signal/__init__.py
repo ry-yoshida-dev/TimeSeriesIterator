@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import override
+from typing import Self, override
 
 from id_manager import IDManager
 
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class SignalIterator(TimeSeriesIterator):
+class SignalIterator(TimeSeriesIterator, source_type=SourceType.SIGNAL):
     """
     Iterator for numeric signals, reading each sample from a `SignalSource`.
 
@@ -73,11 +73,12 @@ class SignalIterator(TimeSeriesIterator):
         )
 
     @classmethod
+    @override
     def from_paths(
         cls,
         paths: list[str],
-        params: TimeSeriesIterationParameters,
-    ) -> SignalIterator:
+        params: TimeSeriesIterationParameters | None = None,
+    ) -> Self:
         """
         Build an iterator reading files as one signal, in the given order.
 
@@ -88,12 +89,12 @@ class SignalIterator(TimeSeriesIterator):
         ----------
         paths: list[str]
             The paths to the signal files.
-        params: TimeSeriesIterationParameters
-            The parameters for the signal iterator.
+        params: TimeSeriesIterationParameters | None
+            The parameters for the signal iterator, or None for the defaults.
 
         Returns
         -------
-        SignalIterator: The iterator.
+        Self: The iterator.
 
         Raises
         ------
@@ -107,7 +108,10 @@ class SignalIterator(TimeSeriesIterator):
             file_format.open(path)
             for file_format, path in zip(file_formats, paths, strict=True)
         ]
-        return cls(source=ConcatenatedSignalSource(sources), params=params)
+        return cls(
+            source=ConcatenatedSignalSource(sources),
+            params=params or TimeSeriesIterationParameters(),
+        )
 
     @override
     def _next_data(self) -> NumericArray | None:
@@ -167,11 +171,6 @@ class SignalIterator(TimeSeriesIterator):
         return (
             f"SignalIterator(source={type(self.source).__name__}, params={self.params})"
         )
-
-    @property
-    @override
-    def source_type(self) -> SourceType:
-        return SourceType.SIGNAL
 
     @property
     @override

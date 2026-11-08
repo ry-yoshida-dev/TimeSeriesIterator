@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterator
 from types import TracebackType
-from typing import Self
+from typing import ClassVar, Self
 
 from id_manager import IDManager
 from progress_bar import ProgressBarBackend, ProgressBarReporter
@@ -17,6 +17,10 @@ class TimeSeriesIterator(ABC):
     """
     Base class for time series data iterator.
 
+    A concrete iterator names the source type it reads in its class statement
+    (``class ImageIterator(..., source_type=SourceType.IMAGE)``), which
+    registers it for `build`.
+
     Attributes
     ----------
     params: TimeSeriesIterationParameters
@@ -24,6 +28,15 @@ class TimeSeriesIterator(ABC):
     time_id_manager: IDManager
         The manager for the time id.
     """
+
+    _iterator_types: ClassVar[dict[SourceType, type[TimeSeriesIterator]]] = {}
+    _source_type: ClassVar[SourceType]
+
+    def __init_subclass__(cls, source_type: SourceType | None = None) -> None:
+        super().__init_subclass__()
+        if source_type is not None:
+            cls._source_type = source_type
+            TimeSeriesIterator._iterator_types[source_type] = cls
 
     def __init__(
         self,
@@ -37,12 +50,17 @@ class TimeSeriesIterator(ABC):
         params: TimeSeriesIterationParameters
             The parameters for the time series iterator.
         """
-        self.params = params
+        self._params: TimeSeriesIterationParameters = params
 
         self.time_id_manager: IDManager = IDManager(
             current_id=self.params.start_time_id,
             step=self.params.sampling_freq * self.params.pre_sampled_freq,
         )
+
+    @property
+    def params(self) -> TimeSeriesIterationParameters:
+        """The parameters for the time series iterator."""
+        return self._params
 
     def __iter__(self) -> Iterator[tuple[int, NumericArray]]:
         return self
@@ -298,9 +316,9 @@ class TimeSeriesIterator(ABC):
         pass
 
     @property
-    @abstractmethod
     def source_type(self) -> SourceType:
         """Kind of data this iterator reads."""
+        return self._source_type
 
     @property
     @abstractmethod
@@ -311,6 +329,29 @@ class TimeSeriesIterator(ABC):
         Returns
         -------
         int: The end time id of the time series iterator.
+        """
+
+    @classmethod
+    @abstractmethod
+    def from_paths(
+        cls,
+        paths: list[str],
+        params: TimeSeriesIterationParameters | None = None,
+    ) -> Self:
+        """
+        Build an iterator reading the given files, in order.
+
+        Parameters
+        ----------
+        paths: list[str]
+            The paths to the time series data.
+        params: TimeSeriesIterationParameters | None
+            The parameters for the iterator, or None for the defaults of its
+            source type.
+
+        Returns
+        -------
+        Self: The iterator.
         """
 
     @classmethod
@@ -338,31 +379,11 @@ class TimeSeriesIterator(ABC):
 
         Raises
         ------
+        NotImplementedError: If no iterator reads the source type.
         ValueError: If a signal file's suffix is unknown.
         TypeError: If source_type is SourceType.VIDEO and parameters is not a VideoIterationParameters.
         """
-        match source_type:
-            case SourceType.IMAGE:
-                from .iterators.image import ImageIterator
-
-                if parameters is None:
-                    parameters = TimeSeriesIterationParameters()
-                return ImageIterator(paths=paths, params=parameters)
-            case SourceType.VIDEO:
-                from .iterators.video import VideoIterator
-                from .iterators.video.parameters import VideoIterationParameters
-
-                if parameters is None:
-                    parameters = VideoIterationParameters()
-                elif not isinstance(parameters, VideoIterationParameters):
-                    raise TypeError(
-                        "SourceType.VIDEO requires VideoIterationParameters, "
-                        + f"got {type(parameters).__name__}"
-                    )
-                return VideoIterator(paths=paths, params=parameters)
-            case SourceType.SIGNAL:
-                from .iterators.signal import SignalIterator
-
-                if parameters is None:
-                    parameters = TimeSeriesIterationParameters()
-                return SignalIterator.from_paths(paths=paths, params=parameters)
+        iterator_type = TimeSeriesIterator._iterator_types.get(source_type)
+        if iterator_type is None:
+            raise NotImplementedError(f"No iterator reads {source_type}")
+        return iterator_type.from_paths(paths=paths, params=parameters)

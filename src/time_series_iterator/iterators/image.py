@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import override
+from typing import Self, override
 
 import cv2
 from id_manager import IDManager
@@ -11,7 +11,7 @@ from ..utils import SourceType
 from .file import FileTimeSeriesIterator
 
 
-class ImageIterator(FileTimeSeriesIterator):
+class ImageIterator(FileTimeSeriesIterator, source_type=SourceType.IMAGE):
     """
     Iterator for image data.
 
@@ -30,6 +30,29 @@ class ImageIterator(FileTimeSeriesIterator):
             current_id=self.params.offset_start_id,
             step=self.params.sampling_freq,
         )
+
+    @classmethod
+    @override
+    def from_paths(
+        cls,
+        paths: list[str],
+        params: TimeSeriesIterationParameters | None = None,
+    ) -> Self:
+        """
+        Build an iterator reading one image file per sample, in order.
+
+        Parameters
+        ----------
+        paths: list[str]
+            The paths to the images.
+        params: TimeSeriesIterationParameters | None
+            The parameters for the image iterator, or None for the defaults.
+
+        Returns
+        -------
+        Self: The iterator.
+        """
+        return cls(paths=paths, params=params or TimeSeriesIterationParameters())
 
     @override
     def _next_data(self) -> NumericArray | None:
@@ -67,11 +90,6 @@ class ImageIterator(FileTimeSeriesIterator):
     @override
     def __len__(self) -> int:
         return len(self.paths)
-
-    @property
-    @override
-    def source_type(self) -> SourceType:
-        return SourceType.IMAGE
 
     @override
     def get_sample(self, time_id: int) -> NumericArray:
