@@ -1,4 +1,7 @@
+import zipfile
+
 import numpy as np
+from numpy.typing import NDArray
 
 from .array import ArraySignalSource
 
@@ -31,16 +34,17 @@ class NumpyFileSignalSource(ArraySignalSource):
         FileNotFoundError: If the file is not found.
         ValueError: If `array_name` does not resolve to one array of the file.
         """
-        loaded = np.load(path, mmap_mode="r", allow_pickle=False)
-        if isinstance(loaded, np.lib.npyio.NpzFile):
-            with loaded:
-                data = loaded[self._resolve_array_name(path, loaded.files, array_name)]
-        elif array_name is not None:
-            raise ValueError(
-                f"array_name only applies to .npz files, given for: {path}"
-            )
-        else:
-            data = loaded
+        if not zipfile.is_zipfile(path):
+            if array_name is not None:
+                raise ValueError(
+                    f"array_name only applies to .npz files, given for: {path}"
+                )
+            super().__init__(np.lib.format.open_memmap(path, mode="r"))
+            return
+        with np.lib.npyio.NpzFile(open(path, "rb"), own_fid=True) as archive:
+            data: NDArray[np.generic] = archive[
+                self._resolve_array_name(path, archive.files, array_name)
+            ]
         super().__init__(data)
 
     def _resolve_array_name(

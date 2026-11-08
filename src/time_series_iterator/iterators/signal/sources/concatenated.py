@@ -1,8 +1,7 @@
+from bisect import bisect_right
 from collections.abc import Sequence
+from itertools import accumulate
 from typing import override
-
-import numpy as np
-from numpy.typing import NDArray
 
 from ....types import NumericArray
 from ..source import SignalSource
@@ -34,11 +33,11 @@ class ConcatenatedSignalSource(SignalSource):
         if len(sources) == 0:
             raise ValueError("Sources is empty")
         self.sources: list[SignalSource] = list(sources)
-        self._end_indices: NDArray[np.int64] = np.cumsum(
-            [len(source) for source in self.sources], dtype=np.int64
-        )
-        if np.any(np.diff(self._end_indices, prepend=0) == 0):
+        if any(len(source) == 0 for source in self.sources):
             raise ValueError("Every source must hold at least one sample")
+        self._end_indices: list[int] = list(
+            accumulate(len(source) for source in self.sources)
+        )
 
         sample_shapes = {source.sample_shape for source in self.sources}
         if len(sample_shapes) != 1:
@@ -48,12 +47,12 @@ class ConcatenatedSignalSource(SignalSource):
 
     @override
     def _read_sample(self, index: int) -> NumericArray:
-        source_index = int(np.searchsorted(self._end_indices, index, side="right"))
+        source_index = bisect_right(self._end_indices, index)
         previous_end_index = (
-            int(self._end_indices[source_index - 1]) if source_index > 0 else 0
+            self._end_indices[source_index - 1] if source_index > 0 else 0
         )
         return self.sources[source_index].read(index - previous_end_index)
 
     @override
     def __len__(self) -> int:
-        return int(self._end_indices[-1])
+        return self._end_indices[-1]

@@ -187,7 +187,7 @@ class SignalIteratorTest(unittest.TestCase):
         by_name = DelimitedTextSignalSource(
             str(path), is_header_present=True, columns=["y", "x"]
         )
-        self.assertEqual(by_name.read(1).tolist(), [4.0, 3.0])
+        self.assertTrue(np.array_equal(by_name.read(1), np.array([4.0, 3.0])))
         by_index = DelimitedTextSignalSource(
             str(path), is_header_present=True, columns=[1]
         )
